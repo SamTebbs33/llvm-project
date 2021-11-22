@@ -1204,6 +1204,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
       return "elf32-littleriscv";
     case ELF::EM_CSKY:
       return "elf32-csky";
+    case ELF::EM_FERO:
+      return "elf32-fero";
     case ELF::EM_SPARC:
     case ELF::EM_SPARC32PLUS:
       return "elf32-sparc";
@@ -1290,6 +1292,13 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
       return Triple::riscv32;
     case ELF::ELFCLASS64:
       return Triple::riscv64;
+    default:
+      report_fatal_error("Invalid ELFCLASS!");
+    }
+  case ELF::EM_FERO:
+    switch (EF.getHeader().e_ident[ELF::EI_CLASS]) {
+    case ELF::ELFCLASS32:
+      return Triple::fero;
     default:
       report_fatal_error("Invalid ELFCLASS!");
     }
