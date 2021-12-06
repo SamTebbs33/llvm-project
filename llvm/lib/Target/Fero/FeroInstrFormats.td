@@ -40,10 +40,10 @@ def InstFormat3     : InstFormat<4>;
 class FeroOpcode<bits<7> val> {
   bits<7> Value = val;
 }
-def OPC_MOV      : FeroOpcode<29>;
+def OPC_MOV      : FeroOpcode<0b0011101>;
 
-class FeroInst<dag outs, dag ins, bits<7> opcode, string opcodestr, string argstr,
-            list<dag> pattern, InstFormat format> : Instruction {
+class FeroInst<dag outs, dag ins, bits<7> opcode, string opcodestr, string argstr, string cstr,
+            list<dag> pattern=[], InstFormat format> : Instruction {
   field bits<32> Inst;
   let Inst{6-0} = opcode;
 
@@ -54,6 +54,7 @@ class FeroInst<dag outs, dag ins, bits<7> opcode, string opcodestr, string argst
   field bits<32> SoftFail = 0;
 
   let Namespace = "Fero";
+  let Constraints = cstr;
   dag OutOperandList = outs;
   dag InOperandList = ins;
   let AsmString = opcodestr # "\t" # argstr;
@@ -61,59 +62,53 @@ class FeroInst<dag outs, dag ins, bits<7> opcode, string opcodestr, string argst
   let TSFlags{4-0} = format.Value;
 }
 
-class Type0Inst<dag outs, dag ins, bits<7> opcode, string opcodestr, string argstr,
-             list<dag> pattern>
-    : FeroInst<outs, ins, opcode, opcodestr, argstr, pattern, InstFormat0> {
+class Type0Inst<dag outs, dag ins, bits<7> opcode, string opcodestr, string argstr, string cstr,
+             list<dag> pattern=[]>
+    : FeroInst<outs, ins, opcode, opcodestr, argstr, cstr, pattern, InstFormat0> {
 
   let Inst{15-7} = 0;
   let Size = 2;
 }
 
-class Type1Inst<dag outs, dag ins, bits<7> opcode,  string opcodestr, string argstr,
-             list<dag> pattern>
-    : FeroInst<outs, ins, opcode, opcodestr, argstr, pattern, InstFormat1> {
+class Type1Inst<dag outs, dag ins, bits<7> opcode, bits<4> condition, bit indirect, string opcodestr, string argstr, string cstr,
+             list<dag> pattern=[]>
+    : FeroInst<outs, ins, opcode, opcodestr, argstr, cstr, pattern, InstFormat1> {
 
-  bits<4> Condition;
   bits<4> Ra;
-  bit Indirect;
 
-  let Inst{10-7} = Condition;
+  let Inst{10-7} = condition;
   let Inst{14-11} = Ra;
-  let Inst{15} = Indirect;
+  let Inst{15} = indirect;
 
   let Size = 2;
 }
 
-class Type2Inst<dag outs, dag ins, bits<7> opcode, string opcodestr, string argstr,
-             list<dag> pattern>
-    : FeroInst<outs, ins, opcode, opcodestr, argstr, pattern, InstFormat2> {
+class Type2Inst<dag outs, dag ins, bits<7> opcode, bits<4> condition, bit indirect, string opcodestr, string argstr, string cstr,
+             list<dag> pattern=[]>
+    : FeroInst<outs, ins, opcode, opcodestr, argstr, cstr, pattern, InstFormat2> {
 
-  bits<4> Condition;
   bits<4> Ra;
-  bit Indirect;
   bits<16> Immediate;
 
-  let Inst{10-7} = Condition;
+  let Inst{10-7} = condition;
   let Inst{14-11} = Ra;
-  let Inst{15} = Indirect;
+  let Inst{15} = indirect;
   let Inst{31-16} = Immediate;
 
   let Size = 4;
 }
 
-class Type3Inst<dag outs, dag ins, bits<7> opcode, string opcodestr, string argstr,
-             list<dag> pattern>
-    : FeroInst<outs, ins, opcode, opcodestr, argstr, pattern, InstFormat3> {
+class Type3Inst<dag outs, dag ins, bits<7> opcode, bits<4> condition, bit indirect, string opcodestr, string argstr, string cstr,
+             list<dag> pattern=[]>
+    : FeroInst<outs, ins, opcode, opcodestr, argstr, cstr, pattern, InstFormat3> {
 
-  bits<4> Condition;
   bits<4> Offset;
-  bit Indirect;
   bits<4> Ra;
   bits<4> Rb;
 
-  let Inst{10-7} = Condition;
+  let Inst{10-7} = condition;
   let Inst{14-11} = Offset;
-  let Inst{15} = Indirect;
+  let Inst{15} = indirect;
   let Inst{19-16} = Ra;
   let Inst{23-20} = Rb;
 
@@ -121,9 +116,9 @@ class Type3Inst<dag outs, dag ins, bits<7> opcode, string opcodestr, string args
 }
 
 // Pseudo instructions
-class Pseudo<dag outs, dag ins, list<dag> pattern, string opcodestr = "",
-             string argstr = "">
-    : FeroInst<outs, ins, 0, opcodestr, argstr, pattern, InstFormatPseudo>,
+class Pseudo<dag outs, dag ins, list<dag> pattern=[], string opcodestr = "",
+             string argstr = "", string cstr = "">
+    : FeroInst<outs, ins, 0, opcodestr, argstr, cstr, pattern, InstFormatPseudo>,
       Sched<[]> {
   let isPseudo = 1;
   let isCodeGenOnly = 1;
