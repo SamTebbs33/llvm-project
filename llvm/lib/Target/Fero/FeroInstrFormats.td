@@ -32,114 +32,99 @@ class InstFormat<bits<5> val> {
   bits<5> Value = val;
 }
 def InstFormatPseudo : InstFormat<0>;
-def InstFormatR      : InstFormat<1>;
-def InstFormatR4     : InstFormat<2>;
-def InstFormatI      : InstFormat<3>;
-def InstFormatS      : InstFormat<4>;
-def InstFormatB      : InstFormat<5>;
-def InstFormatU      : InstFormat<6>;
-def InstFormatJ      : InstFormat<7>;
-def InstFormatCR     : InstFormat<8>;
-def InstFormatCI     : InstFormat<9>;
-def InstFormatCSS    : InstFormat<10>;
-def InstFormatCIW    : InstFormat<11>;
-def InstFormatCL     : InstFormat<12>;
-def InstFormatCS     : InstFormat<13>;
-def InstFormatCA     : InstFormat<14>;
-def InstFormatCB     : InstFormat<15>;
-def InstFormatCJ     : InstFormat<16>;
-def InstFormatOther  : InstFormat<17>;
+def InstFormat0     : InstFormat<1>;
+def InstFormat1     : InstFormat<2>;
+def InstFormat2     : InstFormat<3>;
+def InstFormat3     : InstFormat<4>;
 
-// The following opcode names match those given in Table 19.1 in the
-// RISC-V User-level ISA specification ("RISC-V base opcode map").
 class FeroOpcode<bits<7> val> {
   bits<7> Value = val;
 }
-def OPC_LOAD      : FeroOpcode<0b0000011>;
-def OPC_LOAD_FP   : FeroOpcode<0b0000111>;
-def OPC_MISC_MEM  : FeroOpcode<0b0001111>;
-def OPC_OP_IMM    : FeroOpcode<0b0010011>;
-def OPC_AUIPC     : FeroOpcode<0b0010111>;
-def OPC_OP_IMM_32 : FeroOpcode<0b0011011>;
-def OPC_STORE     : FeroOpcode<0b0100011>;
-def OPC_STORE_FP  : FeroOpcode<0b0100111>;
-def OPC_AMO       : FeroOpcode<0b0101111>;
-def OPC_OP        : FeroOpcode<0b0110011>;
-def OPC_LUI       : FeroOpcode<0b0110111>;
-def OPC_OP_32     : FeroOpcode<0b0111011>;
-def OPC_MADD      : FeroOpcode<0b1000011>;
-def OPC_MSUB      : FeroOpcode<0b1000111>;
-def OPC_NMSUB     : FeroOpcode<0b1001011>;
-def OPC_NMADD     : FeroOpcode<0b1001111>;
-def OPC_OP_FP     : FeroOpcode<0b1010011>;
-def OPC_BRANCH    : FeroOpcode<0b1100011>;
-def OPC_JALR      : FeroOpcode<0b1100111>;
-def OPC_JAL       : FeroOpcode<0b1101111>;
-def OPC_SYSTEM    : FeroOpcode<0b1110011>;
+def OPC_MOV      : FeroOpcode<29>;
 
-class RWInst<dag outs, dag ins, string opcodestr, string argstr,
-             list<dag> pattern, InstFormat format>
-    : Instruction {
+class FeroInst<dag outs, dag ins, bits<7> opcode, string opcodestr, string argstr,
+            list<dag> pattern, InstFormat format> : Instruction {
   field bits<32> Inst;
+  let Inst{6-0} = opcode;
+
   // SoftFail is a field the disassembler can use to provide a way for
   // instructions to not match without killing the whole decode process. It is
   // mainly used for ARM, but Tablegen expects this field to exist or it fails
   // to build the decode table.
   field bits<32> SoftFail = 0;
-  let Size = 4;
-
-  bits<7> Opcode = 0;
-
-  let Inst{6-0} = Opcode;
 
   let Namespace = "Fero";
-
   dag OutOperandList = outs;
   dag InOperandList = ins;
   let AsmString = opcodestr # "\t" # argstr;
   let Pattern = pattern;
-
   let TSFlags{4-0} = format.Value;
+}
+
+class Type0Inst<dag outs, dag ins, bits<7> opcode, string opcodestr, string argstr,
+             list<dag> pattern>
+    : FeroInst<outs, ins, opcode, opcodestr, argstr, pattern, InstFormat0> {
+
+  let Inst{15-7} = 0;
+  let Size = 2;
+}
+
+class Type1Inst<dag outs, dag ins, bits<7> opcode,  string opcodestr, string argstr,
+             list<dag> pattern>
+    : FeroInst<outs, ins, opcode, opcodestr, argstr, pattern, InstFormat1> {
+
+  bits<4> Condition;
+  bits<4> Ra;
+  bit Indirect;
+
+  let Inst{10-7} = Condition;
+  let Inst{14-11} = Ra;
+  let Inst{15} = Indirect;
+
+  let Size = 2;
+}
+
+class Type2Inst<dag outs, dag ins, bits<7> opcode, string opcodestr, string argstr,
+             list<dag> pattern>
+    : FeroInst<outs, ins, opcode, opcodestr, argstr, pattern, InstFormat2> {
+
+  bits<4> Condition;
+  bits<4> Ra;
+  bit Indirect;
+  bits<16> Immediate;
+
+  let Inst{10-7} = Condition;
+  let Inst{14-11} = Ra;
+  let Inst{15} = Indirect;
+  let Inst{31-16} = Immediate;
+
+  let Size = 4;
+}
+
+class Type3Inst<dag outs, dag ins, bits<7> opcode, string opcodestr, string argstr,
+             list<dag> pattern>
+    : FeroInst<outs, ins, opcode, opcodestr, argstr, pattern, InstFormat3> {
+
+  bits<4> Condition;
+  bits<4> Offset;
+  bit Indirect;
+  bits<4> Ra;
+  bits<4> Rb;
+
+  let Inst{10-7} = Condition;
+  let Inst{14-11} = Offset;
+  let Inst{15} = Indirect;
+  let Inst{19-16} = Ra;
+  let Inst{23-20} = Rb;
+
+  let Size = 3;
 }
 
 // Pseudo instructions
 class Pseudo<dag outs, dag ins, list<dag> pattern, string opcodestr = "",
              string argstr = "">
-    : RWInst<outs, ins, opcodestr, argstr, pattern, InstFormatPseudo>,
+    : FeroInst<outs, ins, 0, opcodestr, argstr, pattern, InstFormatPseudo>,
       Sched<[]> {
   let isPseudo = 1;
   let isCodeGenOnly = 1;
-}
-
-// Instruction formats are listed in the order they appear in the RISC-V
-// instruction set manual (R, I, S, B, U, J) with sub-formats (e.g. RWInstR4,
-// RWInstRAtomic) sorted alphabetically.
-
-class RWInstR<bits<7> funct7, bits<3> funct3, FeroOpcode opcode, dag outs,
-              dag ins, string opcodestr, string argstr>
-    : RWInst<outs, ins, opcodestr, argstr, [], InstFormatR> {
-  bits<5> rs2;
-  bits<5> rs1;
-  bits<5> rd;
-
-  let Inst{31-25} = funct7;
-  let Inst{24-20} = rs2;
-  let Inst{19-15} = rs1;
-  let Inst{14-12} = funct3;
-  let Inst{11-7} = rd;
-  let Opcode = opcode.Value;
-}
-
-class RWInstI<bits<3> funct3, FeroOpcode opcode, dag outs, dag ins,
-              string opcodestr, string argstr>
-    : RWInst<outs, ins, opcodestr, argstr, [], InstFormatI> {
-  bits<12> imm12;
-  bits<5> rs1;
-  bits<5> rd;
-
-  let Inst{31-20} = imm12;
-  let Inst{19-15} = rs1;
-  let Inst{14-12} = funct3;
-  let Inst{11-7} = rd;
-  let Opcode = opcode.Value;
 }
