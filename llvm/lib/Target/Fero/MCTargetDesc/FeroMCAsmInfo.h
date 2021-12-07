@@ -23,7 +23,8 @@ class FeroMCAsmInfo : public MCAsmInfoELF {
   void anchor() override;
 
 public:
-  explicit FeroMCAsmInfo(const Triple &TheTriple);
+  explicit FeroMCAsmInfo(const Triple &TheTriple,
+                          const MCTargetOptions &Options);
 };
 
 } // namespace llvm
