@@ -18,10 +18,10 @@
 include "FeroInstrFormats.td"
 
 // Procedure calling
-def SDT_CallSeqStart : SDCallSeqStart<[SDTCisVT<0, i32>,
-                                       SDTCisVT<1, i32>]>;
-def SDT_CallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i32>,
-                                    SDTCisVT<1, i32>]>;
+def SDT_CallSeqStart : SDCallSeqStart<[SDTCisVT<0, i16>,
+                                       SDTCisVT<1, i16>]>;
+def SDT_CallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i16>,
+                                    SDTCisVT<1, i16>]>;
 
 // These are target-independent nodes, but have target-specific formats.
 def callseq_start : SDNode<"ISD::CALLSEQ_START", SDT_CallSeqStart,
@@ -29,10 +29,10 @@ def callseq_start : SDNode<"ISD::CALLSEQ_START", SDT_CallSeqStart,
 def callseq_end   : SDNode<"ISD::CALLSEQ_END", SDT_CallSeqEnd,
                            [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue]>;
 
-let Defs = [R2], Uses = [R2] in {
-def ADJCALLSTACKDOWN : Pseudo<(outs), (ins i32imm:$amt1, i32imm:$amt2),
+let Defs = [R14], Uses = [R14] in {
+def ADJCALLSTACKDOWN : Pseudo<(outs), (ins i16imm:$amt1, i16imm:$amt2),
                               [(callseq_start timm:$amt1, timm:$amt2)]>;
-def ADJCALLSTACKUP   : Pseudo<(outs), (ins i32imm:$amt1, i32imm:$amt2),
+def ADJCALLSTACKUP   : Pseudo<(outs), (ins i16imm:$amt1, i16imm:$amt2),
                               [(callseq_end timm:$amt1, timm:$amt2)]>;
 } // end Defs = [R2], Uses = [R2]
 
