@@ -26,12 +26,13 @@ public:
 
   // Pass Name
   StringRef getPassName() const override {
-    return "CPU0 DAG->DAG Pattern Instruction Selection";
+    return "Fero DAG->DAG Pattern Instruction Selection";
   }
 
   bool runOnMachineFunction(MachineFunction &MF) override;
 
   void Select(SDNode *Node) override;
+  void selectFrameIndex(SDNode *Node);
 
 #include "FeroGenDAGISel.inc"
 
