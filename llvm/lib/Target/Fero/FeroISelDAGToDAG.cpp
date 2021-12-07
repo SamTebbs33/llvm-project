@@ -38,9 +38,26 @@ void FeroDAGToDAGISel::Select(SDNode *Node) {
   // Instruction Selection not handled by the auto-generated tablegen selection
   // should be handled here.
   switch(Opcode) {
-  default: break;
+    case ISD::FrameIndex:
+      selectFrameIndex(Node);
+      return;
+    default: break;
   }
 
   // Select the default instruction
   SelectCode(Node);
+}
+
+void FeroDAGToDAGISel::selectFrameIndex(SDNode *Node) {
+  SDLoc DL(Node);
+  SDValue Imm = CurDAG->getTargetConstant(0, DL, MVT::i32);
+  int FI = cast<FrameIndexSDNode>(Node)->getIndex();
+  EVT VT = Node->getValueType(0);
+  SDValue TFI = CurDAG->getTargetFrameIndex(FI, VT);
+  unsigned Opc = Fero::ADDI;
+  if (Node->hasOneUse()) {
+    CurDAG->SelectNodeTo(Node, Opc, VT, TFI, Imm);
+    return;
+  }
+  ReplaceNode(Node, CurDAG->getMachineNode(Opc, DL, VT, TFI, Imm));
 }
