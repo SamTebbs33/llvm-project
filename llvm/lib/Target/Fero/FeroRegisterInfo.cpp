@@ -44,10 +44,8 @@ FeroRegisterInfo::getCallPreservedMask(const MachineFunction &MF,
 BitVector FeroRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
 
-  markSuperRegs(Reserved, Fero::R0); // zero
-  markSuperRegs(Reserved, Fero::R2); // sp
-  markSuperRegs(Reserved, Fero::R3); // gp
-  markSuperRegs(Reserved, Fero::R4); // tp
+  markSuperRegs(Reserved, Fero::R14); // sp
+  markSuperRegs(Reserved, Fero::R15); // return address
 
   return Reserved;
 }
@@ -56,7 +54,33 @@ void FeroRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                                            int SPAdj,
                                            unsigned FIOperandNum,
                                            RegScavenger *RS) const {
-  llvm_unreachable("Unsupported eliminateFrameIndex");
+  assert(SPAdj == 0 && "Unexpected");
+
+  MachineInstr &MI = *II;
+  MachineFunction &MF = *MI.getParent()->getParent();
+  const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
+  const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
+  bool HasFP = TFI->hasFP(MF);
+  DebugLoc DL = MI.getDebugLoc();
+
+  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+
+  int Offset = MF.getFrameInfo().getObjectOffset(FrameIndex) +
+               MI.getOperand(FIOperandNum + 1).getImm();
+
+  // Addressable stack objects are addressed using neg. offsets from fp
+  // or pos. offsets from sp/basepointer
+  if (!HasFP || (hasStackRealignment(MF) && FrameIndex >= 0))
+    Offset += MF.getFrameInfo().getStackSize();
+
+  Register FrameReg = Fero::R14;
+  Register Dest = MI.getOperand(0).getReg();
+
+  BuildMI(*MI.getParent(), II, DL, TII->get(Fero::LD), Dest).addImm(Offset);
+  BuildMI(*MI.getParent(), II, DL, TII->get(Fero::ADD), Dest)
+    .addReg(Dest)
+    .addReg(FrameReg);
+  MI.eraseFromParent();
 }
 
 bool
@@ -84,4 +108,3 @@ FeroRegisterInfo::trackLivenessAfterRegAlloc(const MachineFunction &MF) const {
 Register FeroRegisterInfo::getFrameRegister(const MachineFunction &MF) const {
   llvm_unreachable("Unsupported getFrameRegister");
 }
-

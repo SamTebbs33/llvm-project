@@ -83,8 +83,16 @@ let isReturn = 1, isBarrier = 1, isTerminator = 1 in
 def PseudoRET : Pseudo<(outs), (ins), [(fero_ret)]>, PseudoInstExpansion<(JMR R15)>;
 def : InstAlias<"ret", (JMR R15), 4>;
 
+/* Type 2 */
+defm ADDI : Type2InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai, i16imm:$imm), 0b0010110, "add", "$Ra, $imm", "$Ra = $Rai">;
+defm LD : Type2InstIndirectable<(outs GPR:$Ra), (ins i16imm:$imm), 0b0010001, "ld", "$Ra, $imm", "">;
+
 /* Type 3 */
 defm MOV : Type3InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rb), 0b0011101, "mov", "$Ra, $Rb", "">;
+defm ADD : Type3InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011010, "add", "$Ra, $Rb", "$Ra = $Rai">;
+defm STR : Type3InstConditional<(outs), (ins GPR:$Ra, GPR:$Rb), 0b0100001, 0, "str", "$Ra, $Rb", "">;
 
 // Type 3 patterns
 def : Pat<(load GPR:$Rb), (MOV GPR:$Rb)>;
+def : Pat<(add GPR:$Ra, GPR:$Rb), (ADD GPR:$Ra, GPR:$Rb)>;
+def : Pat<(store GPR:$Ra, GPR:$Rb), (STR GPR:$Ra, GPR:$Rb)>;
