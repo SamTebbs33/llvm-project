@@ -36,6 +36,19 @@ def ADJCALLSTACKUP   : Pseudo<(outs), (ins i16imm:$amt1, i16imm:$amt2),
                               [(callseq_end timm:$amt1, timm:$amt2)]>;
 } // end Defs = [R2], Uses = [R2]
 
+/* Custom operands */
+def MemRegAsmOperand : AsmOperandClass {
+  let Name = "MemReg";
+  let ParserMethod  = "parseMemoryOperand";
+}
+def MEMr : Operand<i16> {
+  let DecoderMethod = "decodeRMemoryValue";
+  let EncoderMethod = "getRMemoryOpValue";
+  let MIOperandInfo = (ops GPR:$Op1);
+  let ParserMatchClass = MemRegAsmOperand;
+  let PrintMethod   = "printMemROperand";
+}
+
 // Type 1 instructions that can be conditionally executed
 // TODO: Add other condition codes
 multiclass Type1InstConditional<dag outs, dag ins, bits<7> opcode, bit indirect, string opcodestr, string argstr, string cstr> {
@@ -66,12 +79,6 @@ multiclass Type3InstConditional<dag outs, dag ins, bits<7> opcode, bit indirect,
   def "" : Type3Inst<outs, ins, opcode, 0, indirect, opcodestr, argstr, cstr>;
 }
 
-// Type 3 instructions that can be indirect
-// TODO: Add indirect multiclass option
-multiclass Type3InstIndirectable<dag outs, dag ins, bits<7> opcode, string opcodestr, string argstr, string cstr> {
-  defm "" : Type3InstConditional<outs, ins, opcode, 0, opcodestr, argstr, cstr>;
-}
-
 /* Type 1 */
 let isCall = 1 in
 defm JMR : Type1InstIndirectable<(outs), (ins GPR:$Ra), 0b0001110, "jmr", "$Ra", "">;
@@ -88,11 +95,15 @@ defm ADDI : Type2InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai, i16imm:$imm), 0
 defm LD : Type2InstIndirectable<(outs GPR:$Ra), (ins i16imm:$imm), 0b0010001, "ld", "$Ra, $imm", "">;
 
 /* Type 3 */
-defm MOV : Type3InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rb), 0b0011101, "mov", "$Ra, $Rb", "">;
-defm ADD : Type3InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011010, "add", "$Ra, $Rb", "$Ra = $Rai">;
-defm STR : Type3InstConditional<(outs), (ins GPR:$Ra, GPR:$Rb), 0b0100001, 0, "str", "$Ra, $Rb", "">;
+def MOV : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rb), 0b0011101, 0, 0, "mov", "$Ra, $Rb", "">;
+def MOV_i : Type3Inst<(outs GPR:$Ra), (ins MEMr:$Rb), 0b0011101, 0, 1, "mov", "$Ra, $Rb", "">;
+
+def ADD : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011010, 0, 0, "add", "$Ra, $Rb", "$Ra = $Rai">;
+def ADD_i : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, MEMr:$Rb), 0b0011010, 0, 1, "add", "$Ra, $Rb", "$Ra = $Rai">;
+
+def STR : Type3Inst<(outs), (ins MEMr:$Ra, GPR:$Rb), 0b0100001, 0, 0, "str", "$Ra, $Rb", "">;
 
 // Type 3 patterns
-def : Pat<(load GPR:$Rb), (MOV GPR:$Rb)>;
+def : Pat<(load GPR:$Rb), (MOV_i MEMr:$Rb)>;
 def : Pat<(add GPR:$Ra, GPR:$Rb), (ADD GPR:$Ra, GPR:$Rb)>;
-def : Pat<(store GPR:$Ra, GPR:$Rb), (STR GPR:$Ra, GPR:$Rb)>;
+def : Pat<(store GPR:$Rb, GPR:$Ra), (STR GPR:$Ra, GPR:$Rb)>;
