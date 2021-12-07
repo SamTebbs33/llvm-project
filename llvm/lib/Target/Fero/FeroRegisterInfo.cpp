@@ -44,6 +44,7 @@ FeroRegisterInfo::getCallPreservedMask(const MachineFunction &MF,
 BitVector FeroRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
 
+  markSuperRegs(Reserved, Fero::R13); // task id
   markSuperRegs(Reserved, Fero::R14); // sp
   markSuperRegs(Reserved, Fero::R15); // return address
 
