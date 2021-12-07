@@ -19,7 +19,8 @@ using namespace llvm;
 
 void FeroMCAsmInfo::anchor() { }
 
-FeroMCAsmInfo::FeroMCAsmInfo(const Triple &TheTriple) {
+FeroMCAsmInfo::FeroMCAsmInfo(const Triple &TheTriple,
+                          const MCTargetOptions &Options) {
   // This architecture is little endian only
   IsLittleEndian = false;
 

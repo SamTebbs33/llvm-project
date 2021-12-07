@@ -11,6 +11,7 @@ tablegen(LLVM FeroGenDAGISel.inc -gen-dag-isel)
 tablegen(LLVM FeroGenCallingConv.inc -gen-callingconv)
 tablegen(LLVM FeroGenSubtargetInfo.inc -gen-subtarget)
 tablegen(LLVM FeroGenMCPseudoLowering.inc -gen-pseudo-lowering)
+tablegen(LLVM FeroGenAsmMatcher.inc -gen-asm-matcher)
 
 # FeroCommonTableGen must be defined
 add_public_tablegen_target(FeroCommonTableGen)
@@ -47,3 +48,4 @@ add_llvm_target(FeroCodeGen
 # Should match with "subdirectories =  MCTargetDesc TargetInfo" in LLVMBuild.txt
 add_subdirectory(TargetInfo)
 add_subdirectory(MCTargetDesc)
+add_subdirectory(AsmParser)

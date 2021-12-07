@@ -64,7 +64,7 @@ static MCInstPrinter *createFeroMCInstPrinter(const Triple &T,
 static MCAsmInfo *createFeroMCAsmInfo(const MCRegisterInfo &MRI,
                                        const Triple &TT,
                                        const MCTargetOptions &Options) {
-  MCAsmInfo *MAI = new FeroMCAsmInfo(TT);
+  MCAsmInfo *MAI = new FeroMCAsmInfo(TT, Options);
 
   unsigned WP = MRI.getDwarfRegNum(Fero::R2, true);
   MCCFIInstruction Inst = MCCFIInstruction::cfiDefCfa(nullptr, WP, 0);
@@ -77,6 +77,7 @@ extern "C" void LLVMInitializeFeroTargetMC() {
   for (Target *T : {&getTheFeroTarget()}) {
     // Register the MC asm info.
     TargetRegistry::RegisterMCAsmInfo(*T, createFeroMCAsmInfo);
+    RegisterMCAsmInfo<FeroMCAsmInfo> X(*T);
 
     // Register the MC instruction info.
     TargetRegistry::RegisterMCInstrInfo(*T, createFeroMCInstrInfo);
