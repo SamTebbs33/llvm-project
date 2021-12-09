@@ -41,6 +41,9 @@ void FeroDAGToDAGISel::Select(SDNode *Node) {
     case ISD::FrameIndex:
       selectFrameIndex(Node);
       return;
+    case ISD::Constant:
+      selectConstantAssignment(Node);
+      return;
     default: break;
   }
 
@@ -48,9 +51,16 @@ void FeroDAGToDAGISel::Select(SDNode *Node) {
   SelectCode(Node);
 }
 
+void FeroDAGToDAGISel::selectConstantAssignment(SDNode *Node) {
+  Node->dump();
+  auto Imm = cast<ConstantSDNode>(Node);
+  Imm->dump();
+  CurDAG->SelectNodeTo(Node, Fero::LD, Node->getValueType(0), CurDAG->getTargetConstant(Imm->getZExtValue(), SDLoc(Node), MVT::i16));
+}
+
 void FeroDAGToDAGISel::selectFrameIndex(SDNode *Node) {
   SDLoc DL(Node);
-  SDValue Imm = CurDAG->getTargetConstant(0, DL, MVT::i32);
+  SDValue Imm = CurDAG->getTargetConstant(0, DL, MVT::i16);
   int FI = cast<FrameIndexSDNode>(Node)->getIndex();
   EVT VT = Node->getValueType(0);
   SDValue TFI = CurDAG->getTargetFrameIndex(FI, VT);

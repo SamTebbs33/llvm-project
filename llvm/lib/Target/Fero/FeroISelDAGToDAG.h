@@ -33,6 +33,7 @@ public:
 
   void Select(SDNode *Node) override;
   void selectFrameIndex(SDNode *Node);
+  void selectConstantAssignment(SDNode *Node);
 
 #include "FeroGenDAGISel.inc"
 
