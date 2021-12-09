@@ -101,9 +101,13 @@ def MOV_i : Type3Inst<(outs GPR:$Ra), (ins MEMr:$Rb), 0b0011101, 0, 1, "mov", "$
 def ADD : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011010, 0, 0, "add", "$Ra, $Rb", "$Ra = $Rai">;
 def ADD_i : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, MEMr:$Rb), 0b0011010, 0, 1, "add", "$Ra, $Rb", "$Ra = $Rai">;
 
+def SUB : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011101, 0, 0, "sub", "$Ra, $Rb", "$Ra = $Rai">;
+def SUB_i : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, MEMr:$Rb), 0b0011010, 0, 1, "sub", "$Ra, $Rb", "$Ra = $Rai">;
+
 def STR : Type3Inst<(outs), (ins MEMr:$Ra, GPR:$Rb), 0b0100001, 0, 0, "str", "$Ra, $Rb", "">;
 
 // Type 3 patterns
 def : Pat<(load GPR:$Rb), (MOV_i MEMr:$Rb)>;
 def : Pat<(add GPR:$Ra, GPR:$Rb), (ADD GPR:$Ra, GPR:$Rb)>;
+def : Pat<(sub GPR:$Ra, GPR:$Rb), (SUB GPR:$Ra, GPR:$Rb)>;
 def : Pat<(store GPR:$Rb, GPR:$Ra), (STR GPR:$Ra, GPR:$Rb)>;
