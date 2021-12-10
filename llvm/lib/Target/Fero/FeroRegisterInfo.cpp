@@ -77,10 +77,14 @@ void FeroRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   Register FrameReg = Fero::R14;
   Register Dest = MI.getOperand(0).getReg();
 
-  BuildMI(*MI.getParent(), II, DL, TII->get(Fero::LD), Dest).addImm(Offset);
-  BuildMI(*MI.getParent(), II, DL, TII->get(Fero::ADD), Dest)
-    .addReg(Dest)
-    .addReg(FrameReg);
+  if (Offset == 0) {
+    BuildMI(*MI.getParent(), II, DL, TII->get(Fero::MOV), Dest).addReg(FrameReg);
+  } else {
+    BuildMI(*MI.getParent(), II, DL, TII->get(Fero::LD), Dest).addImm(Offset);
+    BuildMI(*MI.getParent(), II, DL, TII->get(Fero::ADD), Dest)
+      .addReg(Dest)
+      .addReg(FrameReg);
+  }
   MI.eraseFromParent();
 }
 
