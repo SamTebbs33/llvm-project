@@ -63,6 +63,14 @@ void FeroInstPrinter::printOperand(const MCInst *MI, unsigned OpNo, const MCSubt
   Op.getExpr()->print(O, &MAI, true);
 }
 
+void FeroInstPrinter::printMemIOperand(const MCInst *MI, unsigned OpNo, const MCSubtargetInfo &STI, raw_ostream &O) {
+    const MCOperand &Op = MI->getOperand(OpNo);
+    assert(Op.isImm() && "unknown operand kind in printMemIOperand");
+    O << "[";
+    O << Op.getImm();
+    O << "]";
+}
+
 void FeroInstPrinter::printMemROperand(const MCInst *MI, unsigned OpNo, const MCSubtargetInfo &STI, raw_ostream &O) {
     const MCOperand &Op = MI->getOperand(OpNo);
     assert(Op.isReg() && "unknown operand kind in printMemROperand");

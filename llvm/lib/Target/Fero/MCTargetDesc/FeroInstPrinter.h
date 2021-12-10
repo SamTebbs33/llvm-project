@@ -42,6 +42,7 @@ public:
 private:
   void printOperand(const MCInst *MI, unsigned OpNo, const MCSubtargetInfo &STI, raw_ostream &O);
   void printMemROperand(const MCInst *MI, unsigned OpNo, const MCSubtargetInfo &STI, raw_ostream &O);
+  void printMemIOperand(const MCInst *MI, unsigned OpNo, const MCSubtargetInfo &STI, raw_ostream &O);
 };
 } // end namespace llvm
 
