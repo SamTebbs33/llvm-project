@@ -52,9 +52,7 @@ void FeroDAGToDAGISel::Select(SDNode *Node) {
 }
 
 void FeroDAGToDAGISel::selectConstantAssignment(SDNode *Node) {
-  Node->dump();
   auto Imm = cast<ConstantSDNode>(Node);
-  Imm->dump();
   CurDAG->SelectNodeTo(Node, Fero::LD, Node->getValueType(0), CurDAG->getTargetConstant(Imm->getZExtValue(), SDLoc(Node), MVT::i16));
 }
 
