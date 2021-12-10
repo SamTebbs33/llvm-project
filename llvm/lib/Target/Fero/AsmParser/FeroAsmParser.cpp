@@ -100,6 +100,7 @@ struct FeroOperand : public MCParsedAsmOperand {
     REGISTER,
     IMMEDIATE,
     MEMORY_REG,
+    MEMORY_IMM,
   } Kind;
 
   SMLoc StartLoc, EndLoc;
@@ -119,6 +120,7 @@ struct FeroOperand : public MCParsedAsmOperand {
 
   struct MemOp {
     unsigned BaseReg;
+    unsigned Imm;
   };
 
   union {
@@ -166,11 +168,12 @@ public:
   bool isImm() const override { return Kind == IMMEDIATE; }
 
   bool isMem() const override {
-    return isMemReg();
+    return isMemReg() || isMemImm();
   }
 
-
   bool isMemReg() const { return Kind == MEMORY_REG; }
+
+  bool isMemImm() const { return Kind == MEMORY_IMM; }
 
   bool isToken() const override { return Kind == TOKEN; }
 
@@ -200,9 +203,15 @@ public:
     Inst.addOperand(MCOperand::createReg(getMemBaseReg()));
   }
 
+  void addMemImmOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    addExpr(Inst, getImm());
+  }
+
   void print(raw_ostream &OS) const override {
     switch (Kind) {
     case IMMEDIATE:
+    case MEMORY_IMM:
       OS << "Imm: " << getImm() << "\n";
       break;
     case TOKEN:
@@ -248,6 +257,13 @@ public:
   MorphToMemReg(unsigned BaseReg, std::unique_ptr<FeroOperand> Op) {
     Op->Kind = MEMORY_REG;
     Op->Mem.BaseReg = BaseReg;
+    return Op;
+  }
+
+  static std::unique_ptr<FeroOperand>
+  MorphToMemImm(const MCExpr* Imm, std::unique_ptr<FeroOperand> Op) {
+    Op->Kind = MEMORY_IMM;
+    Op->Imm.Value = Imm;
     return Op;
   }
 };
@@ -373,7 +389,6 @@ FeroAsmParser::parseMemoryOperand(OperandVector &Operands) {
   if (Operands[0]->isToken())
     Type = static_cast<FeroOperand *>(Operands[0].get())->getToken();
 
-  // Use 0 if no offset given
   unsigned BaseReg = 0;
 
   // Only continue if next token is '['
@@ -384,15 +399,19 @@ FeroAsmParser::parseMemoryOperand(OperandVector &Operands) {
   Parser.Lex(); // Eat the '['.
 
   std::unique_ptr<FeroOperand> Op = parseRegister();
+  if (!Op) {
+    Op = parseImmediate();
+  }
+
   if (!Op || !Lexer.is(AsmToken::RBrac)) {
     Error(Parser.getTok().getLoc(),
           "Unknown operand, expected register or immediate");
     return MatchOperand_ParseFail;
   }
-  BaseReg = Op->getReg();
   Parser.Lex(); // Eat the ']'
 
-  Operands.push_back(FeroOperand::MorphToMemReg(BaseReg, std::move(Op)));
+  if (Op->isReg()) Operands.push_back(FeroOperand::MorphToMemReg(BaseReg, std::move(Op)));
+  else if (Op->isImm()) Operands.push_back(FeroOperand::MorphToMemImm(Op->getImm(), std::move(Op)));
   return MatchOperand_Success;
 }
 
