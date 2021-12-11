@@ -34,6 +34,8 @@ public:
   void Select(SDNode *Node) override;
   void selectFrameIndex(SDNode *Node);
   void selectConstantAssignment(SDNode *Node);
+  SDNode* selectBranch(SDNode *Node, unsigned int TargetOp, FeroISD::CondCode Condition);
+  void selectBranchCC(SDNode *Node, unsigned int TargetOp);
 
 #include "FeroGenDAGISel.inc"
 

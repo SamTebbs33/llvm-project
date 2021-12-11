@@ -28,7 +28,24 @@ enum NodeType {
 
   // Return
   Ret,
+  Jmp,
+  JmpCC,
 };
+
+enum CondCode {
+  Al,
+  NorZ,
+  N,
+  Z,
+  NotZ,
+  NotN,
+  NotNorZ,
+  C,
+  NotC,
+};
+
+CondCode getCondCode(ISD::CondCode Code);
+
 }
 
 class FeroSubtarget;
