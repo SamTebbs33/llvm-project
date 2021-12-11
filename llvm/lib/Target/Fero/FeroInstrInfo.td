@@ -75,6 +75,14 @@ def : InstAlias<"ret", (JMR R15), 4>;
 /* Type 2 */
 defm ADDI : Type2InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai, i16imm:$imm), (ins GPR:$Rai, MEMi16imm:$imm), 0b0010110, "add", "$Ra, $imm", "$Ra = $Rai">;
 defm LD : Type2InstIndirectable<(outs GPR:$Ra), (ins i16imm:$imm), (ins MEMi16imm:$imm), 0b0010001, "ld", "$Ra, $imm", "">;
+let isBranch = 1, isBarrier = 1, isTerminator = 1 in
+defm JMP : Type2InstIndirectable<(outs GPR:$Ra), (ins i16imm:$imm), (ins MEMi16imm:$imm), 0b0010010, "jmp", "$imm", "">;
+
+// Type 2 pseudos
+def FEROJmp : SDNode<"FeroISD::Jmp", SDTNone, [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
+def PseudoJMP : Pseudo<(outs), (ins), [(FEROJmp)]>;
+def FEROJmpCC : SDNode<"FeroISD::JmpCC", SDTNone, [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
+def PseudoJMPCC : Pseudo<(outs), (ins), [(FEROJmpCC)]>;
 
 /* Type 3 */
 defm MOV : Type3InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rb), (ins MEMr:$Rb), 0b0011101, "mov", "$Ra, $Rb", "">;

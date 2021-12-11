@@ -464,3 +464,23 @@ FeroTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   default: llvm_unreachable("unimplemented operand");
   }
 }
+
+FeroISD::CondCode FeroISD::getCondCode(ISD::CondCode Code) {
+  switch (Code) {
+    case ISD::SETNE:
+      return NotZ;
+    case ISD::SETEQ:
+      return Z;
+    case ISD::SETGT:
+      return NotNorZ;
+    case ISD::SETGE:
+      return NotZ;
+    case ISD::SETLT:
+      return N;
+    case ISD::SETLE:
+      return NorZ;
+    default:
+      llvm_unreachable("unrecognised condition code");
+  }
+  return Al;
+}

@@ -37,11 +37,6 @@ def InstFormat1     : InstFormat<2>;
 def InstFormat2     : InstFormat<3>;
 def InstFormat3     : InstFormat<4>;
 
-class FeroOpcode<bits<7> val> {
-  bits<7> Value = val;
-}
-def OPC_MOV      : FeroOpcode<0b0011101>;
-
 class FeroInst<dag outs, dag ins, bits<7> opcode, bits<4> condition, string opcodestr, string argstr, string cstr,
             list<dag> pattern=[], InstFormat format> : Instruction {
   field bits<32> Inst;
