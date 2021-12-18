@@ -64,6 +64,7 @@ FeroTargetLowering::FeroTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::GlobalAddress, MVT::i16, Custom);
   setOperationAction(ISD::BlockAddress,  MVT::i16, Custom);
   setOperationAction(ISD::ConstantPool,  MVT::i16, Custom);
+  setOperationAction(ISD::BR_CC, MVT::i16, Custom);
 
   // Set minimum and preferred function alignment (log2)
   setMinFunctionAlignment(Align(1));
@@ -76,6 +77,8 @@ FeroTargetLowering::FeroTargetLowering(const TargetMachine &TM,
 const char *FeroTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (Opcode) {
   case FeroISD::Ret: return "FeroISD::Ret";
+  case FeroISD::Jmp_notZ: return "FeroISD::Jmp_notZ";
+  case FeroISD::Cmp: return "FeroISD::Cmp";
   default:            return NULL;
   }
 }
@@ -461,6 +464,13 @@ FeroTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   case ISD::BlockAddress:         return LowerBlockAddress(Op, DAG);
   case ISD::ConstantPool:         return LowerConstantPool(Op, DAG);
   case ISD::RETURNADDR:           return LowerRETURNADDR(Op, DAG);
+  case ISD::BR_CC: {
+    Op.dump();
+    Op.getOperand(2).dump();
+    Op.getOperand(3).dump();
+    Op.getOperand(4).dump();
+    return DAG.getNode(FeroISD::Jmp_notZ, SDLoc(Op), Op.getValueType(), Op.getOperand(4), DAG.getNode(FeroISD::Cmp, SDLoc(Op), MVT::i16, Op.getOperand(2), Op.getOperand(3)));
+  }
   default: llvm_unreachable("unimplemented operand");
   }
 }

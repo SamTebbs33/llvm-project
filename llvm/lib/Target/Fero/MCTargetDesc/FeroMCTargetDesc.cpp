@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "FeroMCCodeEmitter.h"
 #include "FeroMCTargetDesc.h"
 #include "FeroInstPrinter.h"
 #include "FeroMCAsmInfo.h"
@@ -61,6 +62,14 @@ static MCInstPrinter *createFeroMCInstPrinter(const Triple &T,
   return new FeroInstPrinter(MAI, MII, MRI);
 }
 
+static MCCodeEmitter *createFeroMCCodeEmitter(const MCInstrInfo &MCII,
+                                               const MCRegisterInfo &MRI,
+                                               MCContext &Ctx)
+{
+  return new FeroMCCodeEmitter(MCII, Ctx, false);
+}
+
+
 static MCAsmInfo *createFeroMCAsmInfo(const MCRegisterInfo &MRI,
                                        const Triple &TT,
                                        const MCTargetOptions &Options) {
@@ -90,5 +99,7 @@ extern "C" void LLVMInitializeFeroTargetMC() {
 
     // Register the MCInstPrinter.
     TargetRegistry::RegisterMCInstPrinter(*T, createFeroMCInstPrinter);
+
+    TargetRegistry::RegisterMCCodeEmitter(*T, createFeroMCCodeEmitter);
   }
 }

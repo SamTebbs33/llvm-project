@@ -2,6 +2,7 @@ add_llvm_component_library(LLVMFeroDesc
   FeroMCAsmInfo.cpp
   FeroMCTargetDesc.cpp
   FeroInstPrinter.cpp
+  FeroMCCodeEmitter.cpp
 
   LINK_COMPONENTS
   MC

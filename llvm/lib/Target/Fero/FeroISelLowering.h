@@ -28,6 +28,8 @@ enum NodeType {
 
   // Return
   Ret,
+  Jmp_notZ,
+  Cmp,
 };
 }
 

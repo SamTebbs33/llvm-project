@@ -61,9 +61,25 @@ def MEMi16imm : Operand<i16> {
   let PrintMethod   = "printMemIOperand";
 }
 
+def JmpTarget    : Operand<OtherVT> {
+  let EncoderMethod = "getJumpTargetOpValue";
+  let OperandType = "OPERAND_PCREL";
+}
+
+def SDTPtrFlags    : SDTypeProfile<0, 2, [SDTCisPtrTy<0>, SDTCisVT<1, i16>]>;
+def SDTRegReg : SDTypeProfile<1, 2, [SDTCisVT<0, i16>, SDTCisSameAs<0, 1>, SDTCisSameAs<0, 2>]>;
+
 /* Type 1 */
+class Type1Jmp<bits<7> opcode, string asm, bits<4> condition, bit indirect> : FeroInst<(outs), (ins GPR:$Ra), opcode, condition, indirect, asm, "$Ra", "", 1> {
+  bits<4> Ra;
+  bits<16> imm;
+
+  let Inst{14-11} = Ra;
+  let Inst{31-16} = imm;
+  let Size = 4;
+}
 let isCall = 1 in
-defm JMR : Type1InstIndirectable<(outs), (ins GPR:$Ra), (ins MEMr:$Ra), 0b0001110, "jmr", "$Ra", "">;
+def JMR : Type1Jmp<0b0001110, "jmr", 0, 0>;
 
 // Type 1 pseudos
 def fero_ret : SDNode<"FeroISD::Ret", SDTNone,
@@ -73,18 +89,94 @@ def PseudoRET : Pseudo<(outs), (ins), [(fero_ret)]>, PseudoInstExpansion<(JMR R1
 def : InstAlias<"ret", (JMR R15), 4>;
 
 /* Type 2 */
-defm ADDI : Type2InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai, i16imm:$imm), (ins GPR:$Rai, MEMi16imm:$imm), 0b0010110, "add", "$Ra, $imm", "$Ra = $Rai">;
-defm LD : Type2InstIndirectable<(outs GPR:$Ra), (ins i16imm:$imm), (ins MEMi16imm:$imm), 0b0010001, "ld", "$Ra, $imm", "">;
+class Type2Arithmetic<bits<7> opcode, string asm, bits<4> condition, bit indirect> : FeroInst<(outs GPR:$Ra), (ins GPR:$Rai, i16imm:$imm), opcode, condition, indirect, asm, "$Ra, $imm", "$Ra = $Rai", 2> {
+  bits<4> Ra;
+  bits<16> imm;
+
+  let Inst{14-11} = Ra;
+  let Inst{31-16} = imm;
+  let Size = 4;
+}
+
+class Type2Load<bits<7> opcode, string asm, bits<4> condition, bit indirect> : FeroInst<(outs GPR:$Ra), (ins i16imm:$imm), opcode, condition, indirect, asm, "$Ra, $imm", "", 2> {
+  bits<4> Ra;
+  bits<16> imm;
+
+  let Inst{14-11} = Ra;
+  let Inst{31-16} = imm;
+  let Size = 4;
+}
+
+class Type2Jmp<bits<7> opcode, string asm, bits<4> condition, bit indirect> : FeroInst<(outs), (ins JmpTarget:$imm, GPRFlags:$flags), opcode, condition, indirect, asm, "$imm", "", 2> {
+  bits<16> imm;
+
+  let Inst{14-11} = 0b0000;
+  let Inst{31-16} = imm;
+  let Size = 4;
+}
+
+def ADDI : Type2Arithmetic<0b0010110, "add", 0, 0>;
+def LD : Type2Load<0b0010001, "ld", 0, 0>;
+def JMP : Type2Jmp<0b0010010, "jmp", 0, 0>;
+def JMP_notZ : Type2Jmp<0b0010010, "jmp", 4, 0>;
+
+// Type 2 pseudos
+def Fero_Jmp_notZ : SDNode<"FeroISD::Jmp_notZ", SDTPtrFlags, [SDNPHasChain]>;
+def PseudoJMP_notZ : Pseudo<(outs), (ins JmpTarget:$target, GPRFlags:$flags), [(Fero_Jmp_notZ bb:$target, GPRFlags:$flags)]>;
 
 /* Type 3 */
-defm MOV : Type3InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rb), (ins MEMr:$Rb), 0b0011101, "mov", "$Ra, $Rb", "">;
-defm ADD : Type3InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), (ins GPR:$Rai, MEMr:$Rb), 0b0011010, "add", "$Ra, $Rb", "$Ra = $Rai">;
-defm SUB : Type3InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), (ins GPR:$Rai, MEMr:$Rb), 0b0011101, "sub", "$Ra, $Rb", "$Ra = $Rai">;
+class Type3Load<bits<7> opcode, string asm, bits<4> condition, bit indirect> : FeroInst<(outs GPR:$Ra), (ins GPR:$Rb), opcode, condition, indirect, asm, "$Ra, $Rb", "", 3> {
+  bits<4> Ra;
+  bits<4> Rb;
 
-defm STR : Type3InstConditional<(outs), (ins MEMr:$Ra, GPR:$Rb), 0b0100001, 0, "str", "$Ra, $Rb", "">;
+  let Inst{19-16} = Ra;
+  let Inst{23-20} = Rb;
+  let Size = 3;
+}
+
+class Type3Arithmetic<bits<7> opcode, string asm, bits<4> condition, bit indirect> : FeroInst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), opcode, condition, indirect, asm, "$Ra, $Rb", "$Ra = $Rai", 3> {
+  bits<4> Ra;
+  bits<4> Rb;
+
+  let Inst{19-16} = Ra;
+  let Inst{23-20} = Rb;
+  let Size = 3;
+}
+
+class Type3Cmp<bits<7> opcode, string asm, bits<4> condition, bit indirect> : FeroInst<(outs GPRFlags:$flags), (ins GPR:$Ra, GPR:$Rb), opcode, condition, indirect, asm, "$Ra, $Rb", "", 3> {
+  bits<4> Ra;
+  bits<4> Rb;
+
+  let Inst{19-16} = Ra;
+  let Inst{23-20} = Rb;
+  let Size = 3;
+}
+
+class Type3Store<bits<7> opcode, string asm, bits<4> condition> : FeroInst<(outs), (ins GPR:$Ra, GPR:$Rb), opcode, condition, 0, asm, "$Ra, $Rb", "", 3> {
+  bits<4> Ra;
+  bits<4> Rb;
+
+  let Inst{19-16} = Ra;
+  let Inst{23-20} = Rb;
+  let Size = 3;
+}
+def MOV : Type3Load<0b0011101, "mov", 0, 0>;
+def MOV_indirect : Type3Load<0b0011101, "mov", 0, 1>;
+def ADD : Type3Arithmetic<0b0011010, "add", 0, 0>;
+def SUB : Type3Arithmetic<0b0011101, "sub", 0, 0>;
+def STR : Type3Store<0b0100001, "str", 0>;
+def CMP : Type3Cmp<0b0011110, "cmp", 0, 0>;
+
+// Type 3 pseudos
+def Fero_Cmp : SDNode<"FeroISD::Cmp", SDTRegReg, []>;
+
+// Type 2 patterns
+def : Pat<(br bb:$target), (JMP bb:$target, NOREG)>;
+def : Pat<(Fero_Jmp_notZ bb:$target, GPR:$flags), (JMP_notZ bb:$target, GPR:$flags)>;
 
 // Type 3 patterns
 def : Pat<(load GPR:$Rb), (MOV_indirect MEMr:$Rb)>;
 def : Pat<(add GPR:$Ra, GPR:$Rb), (ADD GPR:$Ra, GPR:$Rb)>;
 def : Pat<(sub GPR:$Ra, GPR:$Rb), (SUB GPR:$Ra, GPR:$Rb)>;
 def : Pat<(store GPR:$Rb, GPR:$Ra), (STR GPR:$Ra, GPR:$Rb)>;
+def : Pat<(Fero_Jmp_notZ bb:$target, (Fero_Cmp GPR:$Ra, GPR:$Rb)), (JMP_notZ JmpTarget:$target, (CMP GPR:$Ra, GPR:$Rb))>;
