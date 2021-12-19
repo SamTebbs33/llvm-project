@@ -64,6 +64,12 @@ def MEMi16imm : Operand<i16> {
 /* Type 1 */
 let isCall = 1 in
 defm JMR : Type1InstIndirectable<(outs), (ins GPR:$Ra), (ins MEMr:$Ra), 0b0001110, "jmr", "$Ra", "">;
+defm INC : Type1InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai), (ins MEMr:$Rai), 0b0001000, "inc", "$Ra", "$Ra = $Rai">;
+defm DEC : Type1InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai), (ins MEMr:$Rai), 0b0001001, "dec", "$Ra", "$Ra = $Rai">;
+
+// Type 1 patterns
+def : Pat<(add GPR:$Ra, (i16 1)), (INC GPR:$Ra)>;
+def : Pat<(sub GPR:$Ra, (i16 1)), (DEC GPR:$Ra)>;
 
 // Type 1 pseudos
 def fero_ret : SDNode<"FeroISD::Ret", SDTNone,
