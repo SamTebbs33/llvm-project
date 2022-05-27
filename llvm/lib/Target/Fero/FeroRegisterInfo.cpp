@@ -14,6 +14,7 @@
 #include "FeroRegisterInfo.h"
 #include "FeroSubtarget.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/CodeGen/MachineFrameInfo.h"
 
 #define GET_REGINFO_TARGET_DESC
 #include "FeroGenRegisterInfo.inc"

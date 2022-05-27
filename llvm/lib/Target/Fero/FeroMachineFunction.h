@@ -22,10 +22,9 @@ namespace llvm {
 /// Fero target-specific information for each MachineFunction.
 class FeroFunctionInfo : public MachineFunctionInfo {
 private:
-  MachineFunction &MF;
 
 public:
-  FeroFunctionInfo(MachineFunction &MF) : MF(MF) {}
+  FeroFunctionInfo(MachineFunction &MF) {}
 };
 
 } // end of namespace llvm
