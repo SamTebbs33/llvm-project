@@ -67,9 +67,9 @@ def MEMi16imm : Operand<i16> {
 
 /* Type 1 */
 let isCall = 1 in
-defm JMR : Type1InstIndirectable<(outs), (ins GPR:$Ra), (ins MEMr:$Ra), 0b0001110, "jmr", "$Ra", "">;
-defm INC : Type1InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai), (ins MEMr:$Rai), 0b0001000, "inc", "$Ra", "$Ra = $Rai">;
-defm DEC : Type1InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai), (ins MEMr:$Rai), 0b0001001, "dec", "$Ra", "$Ra = $Rai">;
+def JMR : Type1Inst<(outs), (ins GPR:$Ra), 0b0001110, 0, "jmr", "$Ra", "">;
+def INC : Type1Inst<(outs GPR:$Ra), (ins GPR:$Rai), 0b0001000, 0, "inc", "$Ra", "$Ra = $Rai">;
+def DEC : Type1Inst<(outs GPR:$Ra), (ins GPR:$Rai), 0b0001001, 0, "dec", "$Ra", "$Ra = $Rai">;
 
 // Type 1 patterns
 def : Pat<(add GPR:$Ra, (i16 1)), (INC GPR:$Ra)>;
@@ -83,16 +83,19 @@ def PseudoRET : Pseudo<(outs), (ins), [(fero_ret)]>, PseudoInstExpansion<(JMR R1
 def : InstAlias<"ret", (JMR R15), 4>;
 
 /* Type 2 */
-defm ADDI : Type2InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai, i16imm:$imm), (ins GPR:$Rai, MEMi16imm:$imm), 0b0010110, "add", "$Ra, $imm", "$Ra = $Rai">;
-defm LD : Type2InstIndirectable<(outs GPR:$Ra), (ins i16imm:$imm), (ins MEMi16imm:$imm), 0b0010001, "ld", "$Ra, $imm", "">;
-defm JMP : Type2InstIndirectable<(outs), (ins jmptarget:$addr), (ins jmptarget:$addr),  0b0010010, "jmp", "$addr", "">;
+def ADDI : Type2Inst<(outs GPR:$Ra), (ins GPR:$Rai, i16imm:$imm), 0b0010110, 0, "add", "$Ra, $imm", "$Ra = $Rai">;
+def LD : Type2Inst<(outs GPR:$Ra), (ins i16imm:$imm), 0b0010001, 0, "ld", "$Ra, $imm", "">;
+def JMP : Type2Inst<(outs), (ins jmptarget:$addr),  0b0010010, 0, "jmp", "$addr", ""> {
+  let Inst{14-11} = 0b0000;
+}
 
 /* Type 3 */
-defm MOV : Type3InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rb), (ins MEMr:$Rb), 0b0011101, "mov", "$Ra, $Rb", "">;
-defm ADD : Type3InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), (ins GPR:$Rai, MEMr:$Rb), 0b0011010, "add", "$Ra, $Rb", "$Ra = $Rai">;
-defm SUB : Type3InstIndirectable<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), (ins GPR:$Rai, MEMr:$Rb), 0b0011101, "sub", "$Ra, $Rb", "$Ra = $Rai">;
+def MOV : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rb), 0b0011101, 0, "mov", "$Ra, $Rb", "">;
+def MOV_indirect : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rb), 0b0011101, 1, "mov", "$Ra, $Rb", "">;
+def ADD : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011010, 0, "add", "$Ra, $Rb", "$Ra = $Rai">;
+def SUB : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011101, 0, "sub", "$Ra, $Rb", "$Ra = $Rai">;
 
-defm STR : Type3InstConditional<(outs), (ins MEMr:$Ra, GPR:$Rb), 0b0100001, 0, "str", "$Ra, $Rb", "">;
+def STR : Type3Inst<(outs), (ins MEMr:$Ra, GPR:$Rb), 0b0100001, 0, "str", "$Ra, $Rb", "">;
 
 // Type 3 patterns
 def : Pat<(load GPR:$Rb), (MOV_indirect MEMr:$Rb)>;

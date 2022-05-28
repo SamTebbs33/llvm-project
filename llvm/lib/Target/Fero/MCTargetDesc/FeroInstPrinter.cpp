@@ -46,6 +46,11 @@ void FeroInstPrinter::printInst(const MCInst *MI, uint64_t Address,
   printAnnotation(O, Annot);
 }
 
+void FeroInstPrinter::printOperand(const MCInst *MI, uint64_t Address, unsigned OpNo, const MCSubtargetInfo &STI,
+                                    raw_ostream &O) {
+    printOperand(MI, OpNo, STI, O);
+}
+
 void FeroInstPrinter::printOperand(const MCInst *MI, unsigned OpNo, const MCSubtargetInfo &STI,
                                     raw_ostream &O) {
   const MCOperand &Op = MI->getOperand(OpNo);
