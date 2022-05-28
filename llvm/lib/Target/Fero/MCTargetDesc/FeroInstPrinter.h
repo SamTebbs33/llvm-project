@@ -41,6 +41,7 @@ public:
 
 private:
   void printOperand(const MCInst *MI, unsigned OpNo, const MCSubtargetInfo &STI, raw_ostream &O);
+  void printOperand(const MCInst *MI, uint64_t Address, unsigned OpNo, const MCSubtargetInfo &STI, raw_ostream &O);
   void printMemROperand(const MCInst *MI, unsigned OpNo, const MCSubtargetInfo &STI, raw_ostream &O);
   void printMemIOperand(const MCInst *MI, unsigned OpNo, const MCSubtargetInfo &STI, raw_ostream &O);
 };
