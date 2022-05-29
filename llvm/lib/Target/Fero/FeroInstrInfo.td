@@ -36,11 +36,16 @@ def ADJCALLSTACKUP   : Pseudo<(outs), (ins i16imm:$amt1, i16imm:$amt2),
                               [(callseq_end timm:$amt1, timm:$amt2)]>;
 } // end Defs = [R2], Uses = [R2]
 
+class SDTCisChain<int OpNum> : SDTCisVT<OpNum, OtherVT>;
+class SDTCisI16  <int OpNum> : SDTCisVT<OpNum, i16>;
+class SDTCisFlag <int OpNum> : SDTCisI16<OpNum>;
+def SDT_JmpCC       : SDTypeProfile<0, 4, [SDTCisChain<0>,
+                                               SDTCisI16<1>,
+                                               SDTCisI16<2>,
+                                               SDTCisFlag<3>]>;
+
 /* Custom operands */
-def jmptarget    : Operand<OtherVT> {
-  let EncoderMethod = "getJumpTargetOpValue";
-  let OperandType = "OPERAND_PCREL";
-}
+def jmptarget : Operand<OtherVT>;
 def MemRegAsmOperand : AsmOperandClass {
   let Name = "MemReg";
   let ParserMethod  = "parseMemoryOperand";
@@ -71,11 +76,6 @@ def JMR : Type1Inst<(outs), (ins GPR:$Ra), 0b0001110, 0, "jmr", "$Ra", "">;
 def INC : Type1Inst<(outs GPR:$Ra), (ins GPR:$Rai), 0b0001000, 0, "inc", "$Ra", "$Ra = $Rai">;
 def DEC : Type1Inst<(outs GPR:$Ra), (ins GPR:$Rai), 0b0001001, 0, "dec", "$Ra", "$Ra = $Rai">;
 
-// Type 1 patterns
-def : Pat<(add GPR:$Ra, (i16 1)), (INC GPR:$Ra)>;
-def : Pat<(sub GPR:$Ra, (i16 1)), (DEC GPR:$Ra)>;
-
-// Type 1 pseudos
 def fero_ret : SDNode<"FeroISD::Ret", SDTNone,
                        [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 let isReturn = 1, isBarrier = 1, isTerminator = 1 in
@@ -85,20 +85,49 @@ def : InstAlias<"ret", (JMR R15), 4>;
 /* Type 2 */
 def ADDI : Type2Inst<(outs GPR:$Ra), (ins GPR:$Rai, i16imm:$imm), 0b0010110, 0, "add", "$Ra, $imm", "$Ra = $Rai">;
 def LD : Type2Inst<(outs GPR:$Ra), (ins i16imm:$imm), 0b0010001, 0, "ld", "$Ra, $imm", "">;
-def JMP : Type2Inst<(outs), (ins jmptarget:$addr),  0b0010010, 0, "jmp", "$addr", ""> {
+
+class JMP_c<bits<4> condition, string suffix, dag iops> : Type2Inst<(outs), !con((ins jmptarget:$addr), iops),  0b0010010, 0, "jmp" # suffix, "$addr", ""> {
   let Inst{14-11} = 0b0000;
+  let Inst{10-7} = condition;
 }
+multiclass JMP_m {
+  def "" : JMP_c<0, "", (ins)>;
+  def _NorZ : JMP_c<1, ".NZ", (ins FR:$f)>;
+  def _N : JMP_c<2, ".N", (ins FR:$f)>;
+  def _Z : JMP_c<3, ".Z", (ins FR:$f)>;
+  def _notZ : JMP_c<4, ".notZ", (ins FR:$f)>;
+  def _notN : JMP_c<5, ".notN", (ins FR:$f)>;
+  def _notNnotZ : JMP_c<6, ".notNnotZ", (ins FR:$f)>;
+  def _C : JMP_c<7, ".C", (ins FR:$f)>;
+  def _notC : JMP_c<8, ".notC", (ins FR:$f)>;
+}
+defm JMP : JMP_m;
+def FeroJmpCC : SDNode<"FeroISD::JmpCC", SDT_JmpCC, [SDNPHasChain]>;
 
 /* Type 3 */
 def MOV : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rb), 0b0011101, 0, "mov", "$Ra, $Rb", "">;
 def MOV_indirect : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rb), 0b0011101, 1, "mov", "$Ra, $Rb", "">;
 def ADD : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011010, 0, "add", "$Ra, $Rb", "$Ra = $Rai">;
 def SUB : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011101, 0, "sub", "$Ra, $Rb", "$Ra = $Rai">;
-
+def CMP : Type2Inst<(outs FR:$f), (ins GPR:$Ra, GPR:$Rb), 0b0000010, 0, "cmp", "$Ra, $Rb", "">;
+def OR : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0100000, 0, "or", "$Ra, $Rb", "$Ra = $Rai">;
 def STR : Type3Inst<(outs), (ins MEMr:$Ra, GPR:$Rb), 0b0100001, 0, "str", "$Ra, $Rb", "">;
+
+// Type 1 patterns
+def : Pat<(add GPR:$Ra, (i16 1)), (INC GPR:$Ra)>;
+def : Pat<(sub GPR:$Ra, (i16 1)), (DEC GPR:$Ra)>;
+
+// Type 2 patterns
+def : Pat<(br bb:$addr), (JMP jmptarget:$addr)>;
+def : Pat<(brcond (i16 (setne GPR:$Ra, GPR:$Rb)), bb:$addr),
+          (JMP_notZ jmptarget:$addr, (CMP GPR:$Ra, GPR:$Rb))>;
+def : Pat<(brcond (i16 (setne GPR:$Ra, GPR:$Rb)), bb:$addr),
+          (JMP_notZ jmptarget:$addr, (CMP GPR:$Ra, GPR:$Rb))>;
 
 // Type 3 patterns
 def : Pat<(load GPR:$Rb), (MOV_indirect MEMr:$Rb)>;
 def : Pat<(add GPR:$Ra, GPR:$Rb), (ADD GPR:$Ra, GPR:$Rb)>;
 def : Pat<(sub GPR:$Ra, GPR:$Rb), (SUB GPR:$Ra, GPR:$Rb)>;
 def : Pat<(store GPR:$Rb, GPR:$Ra), (STR GPR:$Ra, GPR:$Rb)>;
+def : Pat<(or GPR:$Ra, GPR:$Rb), (OR GPR:$Ra, GPR:$Rb)>;
+

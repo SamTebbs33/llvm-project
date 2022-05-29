@@ -13,6 +13,7 @@
 
 #include "FeroISelDAGToDAG.h"
 #include "FeroSubtarget.h"
+#include "FeroISelLowering.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/SelectionDAGISel.h"
 
@@ -44,47 +45,11 @@ void FeroDAGToDAGISel::Select(SDNode *Node) {
     case ISD::Constant:
       selectConstantAssignment(Node);
       return;
-    case ISD::BR:
-      selectBranch(Node, 0, FeroISD::Al);
-      return;
-    case ISD::BR_CC:
-      selectBranchCC(Node, 4);
-      return;
     default: break;
   }
 
   // Select the default instruction
   SelectCode(Node);
-}
-
-void FeroDAGToDAGISel::selectBranchCC(SDNode *Node, unsigned int TargetOp) {
-  auto Code = (cast<CondCodeSDNode>(Node->getOperand(1)))->get();
-  Node->getOperand(1).dump(); // cond
-  Node->getOperand(2).dump(); // a
-  Node->getOperand(3).dump(); // b
-  // 4: target
-  SDValue TargetVal;
-  unsigned int i = 0;
-  for (auto It : Node->op_values()) {
-    if (i++ == TargetOp) {
-      TargetVal = It;
-      break;
-    }
-  }
-  SDValue Values[] = {TargetVal, CurDAG->getTargetConstant(FeroISD::getCondCode(Code), SDLoc(Node), MVT::i16), Node->getOperand(2), Node->getOperand(3)};
-  CurDAG->SelectNodeTo(Node, FeroISD::JmpCC, Node->getValueType(0), Values);
-}
-
-SDNode* FeroDAGToDAGISel::selectBranch(SDNode *Node, unsigned int TargetOp, FeroISD::CondCode Condition) {
-  SDValue Val;
-  unsigned int i = 0;
-  for (auto It : Node->op_values()) {
-    if (i++ == TargetOp) {
-      Val = It;
-      break;
-    }
-  }
-  return CurDAG->SelectNodeTo(Node, FeroISD::Jmp, Node->getValueType(0), Val, CurDAG->getTargetConstant(Condition, SDLoc(Node), MVT::i16));
 }
 
 void FeroDAGToDAGISel::selectConstantAssignment(SDNode *Node) {
