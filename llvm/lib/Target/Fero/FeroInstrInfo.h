@@ -27,6 +27,17 @@ namespace llvm {
 class FeroInstrInfo : public FeroGenInstrInfo {
 public:
   explicit FeroInstrInfo(const FeroSubtarget &STI);
+  void storeRegToStackSlot(MachineBasicBlock &MBB,
+                                   MachineBasicBlock::iterator MI,
+                                   Register SrcReg, bool isKill, int FrameIndex,
+                                   const TargetRegisterClass *RC,
+                                   const TargetRegisterInfo *TRI) const override;
+
+  void loadRegFromStackSlot(MachineBasicBlock &MBB,
+                                  MachineBasicBlock::iterator MI,
+                                  Register DestReg, int FrameIndex,
+                                  const TargetRegisterClass *RC,
+                                  const TargetRegisterInfo *TRI) const override;
 
 protected:
   const FeroSubtarget &Subtarget;

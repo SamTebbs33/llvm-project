@@ -65,6 +65,8 @@ FeroTargetLowering::FeroTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::BlockAddress,  MVT::i16, Custom);
   setOperationAction(ISD::ConstantPool,  MVT::i16, Custom);
 
+  setOperationAction(ISD::BR_CC, MVT::i16, Expand);
+
   // Set minimum and preferred function alignment (log2)
   setMinFunctionAlignment(Align(1));
   setPrefFunctionAlignment(Align(1));
@@ -76,6 +78,15 @@ FeroTargetLowering::FeroTargetLowering(const TargetMachine &TM,
 const char *FeroTargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (Opcode) {
   case FeroISD::Ret: return "FeroISD::Ret";
+  case FeroISD::JmpAL: return "FeroISD::JmpAL";
+  case FeroISD::JmpNorZ: return "FeroISD::JmpNorZ";
+  case FeroISD::JmpC: return "FeroISD::JmpC";
+  case FeroISD::JmpNotNNotZ: return "FeroISD::JmpNotNNotZ";
+  case FeroISD::JmpNotN: return "FeroISD::JmpNotN";
+  case FeroISD::JmpNotZ: return "FeroISD::JmpNotZ";
+  case FeroISD::JmpNotC: return "FeroISD::JmpNotC";
+  case FeroISD::JmpZ: return "FeroISD::JmpZ";
+  case FeroISD::JmpN: return "FeroISD::JmpN";
   default:            return NULL;
   }
 }
@@ -472,7 +483,7 @@ FeroISD::CondCode FeroISD::getCondCode(ISD::CondCode Code) {
     case ISD::SETEQ:
       return Z;
     case ISD::SETGT:
-      return NotNorZ;
+      return NotNNotZ;
     case ISD::SETGE:
       return NotZ;
     case ISD::SETLT:
