@@ -28,8 +28,15 @@ enum NodeType {
 
   // Return
   Ret,
-  Jmp,
-  JmpCC,
+  JmpAL,
+  JmpNorZ,
+  JmpN,
+  JmpZ,
+  JmpC,
+  JmpNotZ,
+  JmpNotN,
+  JmpNotC,
+  JmpNotNNotZ,
 };
 
 enum CondCode {
@@ -39,7 +46,7 @@ enum CondCode {
   Z,
   NotZ,
   NotN,
-  NotNorZ,
+  NotNNotZ,
   C,
   NotC,
 };
