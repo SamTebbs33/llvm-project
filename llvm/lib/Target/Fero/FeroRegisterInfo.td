@@ -44,4 +44,6 @@ def GPR : RegisterClass<"Fero", [i16], 16, (add
   )>;
 
 def FR : RegisterClass<"Fero", [i16], 16, (add R12)>;
+def TID : RegisterClass<"Fero", [i16], 16, (add R13)>;
 def SP : RegisterClass<"Fero", [i16], 16, (add R14)>;
+def LR : RegisterClass<"Fero", [i16], 16, (add R15)>;
