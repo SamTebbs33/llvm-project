@@ -100,6 +100,7 @@ struct FeroOperand : public MCParsedAsmOperand {
     REGISTER,
     IMMEDIATE,
     MEMORY_REG,
+    MEMORY_REG_OFFSET,
     MEMORY_IMM,
   } Kind;
 
@@ -120,7 +121,7 @@ struct FeroOperand : public MCParsedAsmOperand {
 
   struct MemOp {
     unsigned BaseReg;
-    unsigned Imm;
+    const MCExpr *Imm;
   };
 
   union {
@@ -173,6 +174,8 @@ public:
 
   bool isMemReg() const { return Kind == MEMORY_REG; }
 
+  bool isMemRegOffset() const { return Kind == MEMORY_REG_OFFSET; }
+
   bool isMemImm() const { return Kind == MEMORY_IMM; }
 
   bool isToken() const override { return Kind == TOKEN; }
@@ -203,6 +206,12 @@ public:
     Inst.addOperand(MCOperand::createReg(getMemBaseReg()));
   }
 
+  void addMemRegOffsetOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    Inst.addOperand(MCOperand::createReg(getMemBaseReg()));
+    addExpr(Inst, getImm());
+  }
+
   void addMemImmOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     addExpr(Inst, getImm());
@@ -222,6 +231,9 @@ public:
       break;
     case MEMORY_REG:
       OS << "MemReg: " << getMemBaseReg() << "\n";
+      break;
+    case MEMORY_REG_OFFSET:
+      OS << "MemRegOffset: " << getMemBaseReg() << " + " << getImm() << "\n";
       break;
     }
   }
@@ -244,6 +256,16 @@ public:
     return Op;
   }
 
+  static std::unique_ptr<FeroOperand> createRegOffset(unsigned RegNum, const MCExpr* Offset, SMLoc Start,
+                                                 SMLoc End) {
+    auto Op = std::make_unique<FeroOperand>(REGISTER);
+    Op->Mem.BaseReg = RegNum;
+    Op->Mem.Imm = Offset;
+    Op->StartLoc = Start;
+    Op->EndLoc = End;
+    return Op;
+  }
+
   static std::unique_ptr<FeroOperand> createImm(const MCExpr *Value,
                                                  SMLoc Start, SMLoc End) {
     auto Op = std::make_unique<FeroOperand>(IMMEDIATE);
@@ -257,6 +279,14 @@ public:
   MorphToMemReg(unsigned BaseReg, std::unique_ptr<FeroOperand> Op) {
     Op->Kind = MEMORY_REG;
     Op->Mem.BaseReg = BaseReg;
+    return Op;
+  }
+
+  static std::unique_ptr<FeroOperand>
+  MorphToMemRegOffset(unsigned BaseReg, const MCExpr* Offset, std::unique_ptr<FeroOperand> Op) {
+    Op->Kind = MEMORY_REG_OFFSET;
+    Op->Mem.BaseReg = BaseReg;
+    Op->Mem.Imm= Offset;
     return Op;
   }
 
@@ -389,8 +419,6 @@ FeroAsmParser::parseMemoryOperand(OperandVector &Operands) {
   if (Operands[0]->isToken())
     Type = static_cast<FeroOperand *>(Operands[0].get())->getToken();
 
-  unsigned BaseReg = 0;
-
   // Only continue if next token is '['
   if (Lexer.isNot(AsmToken::LBrac)) {
     return MatchOperand_NoMatch;
@@ -399,8 +427,17 @@ FeroAsmParser::parseMemoryOperand(OperandVector &Operands) {
   Parser.Lex(); // Eat the '['.
 
   std::unique_ptr<FeroOperand> Op = parseRegister();
+  std::unique_ptr<FeroOperand> OpOffset = nullptr;
   if (!Op) {
     Op = parseImmediate();
+  } else if (Lexer.is(AsmToken::Plus)) {
+    // Parse the offset imm
+    OpOffset = parseImmediate();
+    if (!OpOffset || !OpOffset->isImm()) {
+        Error(Parser.getTok().getLoc(),
+              "Unknown offset, expected immediate");
+        return MatchOperand_ParseFail;
+    }
   }
 
   if (!Op || !Lexer.is(AsmToken::RBrac)) {
@@ -410,7 +447,10 @@ FeroAsmParser::parseMemoryOperand(OperandVector &Operands) {
   }
   Parser.Lex(); // Eat the ']'
 
-  if (Op->isReg()) Operands.push_back(FeroOperand::MorphToMemReg(BaseReg, std::move(Op)));
+  unsigned BaseReg = 0;
+
+  if (Op->isReg() && OpOffset) Operands.push_back(FeroOperand::MorphToMemRegOffset(BaseReg, OpOffset->getImm(), std::move(Op)));
+  else if (Op->isReg()) Operands.push_back(FeroOperand::MorphToMemReg(BaseReg, std::move(Op)));
   else if (Op->isImm()) Operands.push_back(FeroOperand::MorphToMemImm(Op->getImm(), std::move(Op)));
   return MatchOperand_Success;
 }
