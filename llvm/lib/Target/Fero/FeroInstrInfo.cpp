@@ -42,8 +42,8 @@ void FeroInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
   assert(Fero::GPRRegClass.hasSubClassEq(RC) && "Register class not handled!");
   DebugLoc DL;
   if (MI != MBB.end()) DL = MI->getDebugLoc();
-  // TODO Store using offset from frame index
-  BuildMI(MBB, MI, DL, get(Fero::STR)).addReg(Fero::SP).addReg(SrcReg, getKillRegState(isKill));
+  if (!MBB.isLiveIn(Fero::R14)) MBB.addLiveIn(Fero::R14);
+  BuildMI(MBB, MI, DL, get(Fero::STR)).addReg(Fero::R14).addImm(FrameIndex).addReg(SrcReg, getKillRegState(isKill));
 }
 
 void FeroInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
@@ -52,8 +52,13 @@ void FeroInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                 const TargetRegisterClass *RC,
                                 const TargetRegisterInfo *TRI) const {
   assert(Fero::GPRRegClass.hasSubClassEq(RC) && "Register class not handled!");
-  DebugLoc DL;
-  if (MI != MBB.end()) DL = MI->getDebugLoc();
-  // TODO Store using offset from frame index
-  BuildMI(MBB, MI, MI->getDebugLoc(), get(Fero::MOV_indirect)).addReg(DestReg).addReg(Fero::SP);
+  if (!MBB.isLiveIn(Fero::R14)) MBB.addLiveIn(Fero::R14);
+  BuildMI(MBB, MI, MI->getDebugLoc(), get(Fero::MOV_indirect)).addDef(DestReg).addReg(Fero::R14).addImm(FrameIndex);
+}
+
+void FeroInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
+                       MachineBasicBlock::iterator MI, const DebugLoc &DL,
+                       MCRegister DestReg, MCRegister SrcReg,
+                       bool KillSrc) const {
+  BuildMI(MBB, MI, MI->getDebugLoc(), get(Fero::MOV)).addDef(DestReg).addReg(SrcReg, getKillRegState(KillSrc));
 }
