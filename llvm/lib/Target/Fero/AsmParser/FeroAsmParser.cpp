@@ -491,10 +491,6 @@ FeroAsmParser::parseOperand(OperandVector *Operands, StringRef Mnemonic) {
   return MatchOperand_Success;
 }
 
-static bool IsRegister(const MCParsedAsmOperand &op) {
-  return static_cast<const FeroOperand &>(op).isReg();
-}
-
 bool FeroAsmParser::ParseInstruction(ParseInstructionInfo & /*Info*/,
                                       StringRef Name, SMLoc NameLoc,
                                       OperandVector &Operands) {
