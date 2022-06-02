@@ -83,3 +83,18 @@ void FeroInstPrinter::printMemROperand(const MCInst *MI, unsigned OpNo, const MC
     printRegName(O, Op.getReg());
     O << "]";
 }
+
+void FeroInstPrinter::printMemROffsetOperand(const MCInst *MI, unsigned OpNo, const MCSubtargetInfo &STI, raw_ostream &O) {
+    const MCOperand &Op = MI->getOperand(OpNo);
+    const MCOperand &OpImm = MI->getOperand(OpNo + 1);
+    assert(Op.isReg() && "unknown reg operand kind in printMemROperand");
+    assert(OpImm.isImm() && "unknown imm operand kind in printMemROperand");
+    O << "[";
+    printRegName(O, Op.getReg());
+    const unsigned Offset = OpImm.getImm();
+    if (Offset != 0) {
+      O << "+";
+      O << OpImm.getImm();
+    }
+    O << "]";
+}
