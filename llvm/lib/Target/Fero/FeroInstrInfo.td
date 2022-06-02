@@ -70,6 +70,18 @@ def MEMi16imm : Operand<i16> {
   let PrintMethod   = "printMemIOperand";
 }
 
+def MemRegOffsetAsmOperand : AsmOperandClass {
+  let Name = "MemRegOffset";
+  let ParserMethod  = "parseMemoryOperand";
+}
+def MEMroffset : Operand<i16> {
+  let DecoderMethod = "decodeROffsetMemoryValue";
+  let EncoderMethod = "getROffsetMemoryOpValue";
+  let MIOperandInfo = (ops GPR:$base, i16imm:$offset);
+  let ParserMatchClass = MemRegOffsetAsmOperand;
+  let PrintMethod   = "printMemROffsetOperand";
+}
+
 /* Type 1 */
 let isCall = 1 in
 def JMR : Type1Inst<(outs), (ins GPR:$Ra), 0b0001110, 0, "jmr", "$Ra", "">;
@@ -106,12 +118,12 @@ def FeroJmpCC : SDNode<"FeroISD::JmpCC", SDT_JmpCC, [SDNPHasChain]>;
 
 /* Type 3 */
 def MOV : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rb), 0b0011101, 0, "mov", "$Ra, $Rb", "">;
-def MOV_indirect : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rb), 0b0011101, 1, "mov", "$Ra, $Rb", "">;
+def MOV_indirect : Type3Inst<(outs GPR:$Ra), (ins MEMroffset:$Rb), 0b0011101, 1, "mov", "$Ra, $Rb", "">;
 def ADD : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011010, 0, "add", "$Ra, $Rb", "$Ra = $Rai">;
 def SUB : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011101, 0, "sub", "$Ra, $Rb", "$Ra = $Rai">;
 def CMP : Type2Inst<(outs FR:$f), (ins GPR:$Ra, GPR:$Rb), 0b0000010, 0, "cmp", "$Ra, $Rb", "">;
 def OR : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0100000, 0, "or", "$Ra, $Rb", "$Ra = $Rai">;
-def STR : Type3Inst<(outs), (ins MEMr:$Ra, GPR:$Rb), 0b0100001, 0, "str", "$Ra, $Rb", "">;
+def STR : Type3Inst<(outs), (ins MEMroffset:$Ra, GPR:$Rb), 0b0100001, 0, "str", "$Ra, $Rb", "">;
 
 // Type 1 patterns
 def : Pat<(add GPR:$Ra, (i16 1)), (INC GPR:$Ra)>;
@@ -125,9 +137,9 @@ def : Pat<(brcond (i16 (setne GPR:$Ra, GPR:$Rb)), bb:$addr),
           (JMP_notZ jmptarget:$addr, (CMP GPR:$Ra, GPR:$Rb))>;
 
 // Type 3 patterns
-def : Pat<(load GPR:$Rb), (MOV_indirect MEMr:$Rb)>;
+def : Pat<(load GPR:$Rb), (MOV_indirect GPR:$Rb, (i16 0))>;
 def : Pat<(add GPR:$Ra, GPR:$Rb), (ADD GPR:$Ra, GPR:$Rb)>;
 def : Pat<(sub GPR:$Ra, GPR:$Rb), (SUB GPR:$Ra, GPR:$Rb)>;
-def : Pat<(store GPR:$Rb, GPR:$Ra), (STR GPR:$Ra, GPR:$Rb)>;
+def : Pat<(store GPR:$Rb, GPR:$Ra), (STR GPR:$Ra, (i16 0), GPR:$Rb)>;
 def : Pat<(or GPR:$Ra, GPR:$Rb), (OR GPR:$Ra, GPR:$Rb)>;
 
