@@ -30,21 +30,18 @@ def R8  : FeroReg<8, "r8", []>, DwarfRegNum<[8]>;
 def R9  : FeroReg<9, "r9", []>, DwarfRegNum<[9]>;
 def R10 : FeroReg<10,"r10", []>, DwarfRegNum<[10]>;
 def R11 : FeroReg<11,"r11", []>, DwarfRegNum<[11]>;
-def R12 : FeroReg<12,"r12", []>, DwarfRegNum<[12]>;
+def R12 : FeroReg<12,"r12", ["flags"]>, DwarfRegNum<[12]>;
 def R13 : FeroReg<13,"r13", ["tid"]>, DwarfRegNum<[13]>;
 def R14 : FeroReg<14,"r14", ["sp"]>, DwarfRegNum<[14]>;
 def R15 : FeroReg<15,"r15", ["lr"]>, DwarfRegNum<[15]>;
 
-def F : FeroReg<16, "flags", []>;
-
 // The order of registers represents the preferred allocation sequence.
 // Registers are listed in the order caller-save, callee-save, specials.
 def GPR : RegisterClass<"Fero", [i16], 16, (add
-    (sequence "R%u", 4, 12),
+    (sequence "R%u", 4, 11),
     (sequence "R%u", 0, 3),
-    (sequence "R%u", 13, 15)
+    (sequence "R%u", 12, 15)
   )>;
 
-def FR : RegisterClass<"Fero", [i16], 16, (add F)>;
-
+def FR : RegisterClass<"Fero", [i16], 16, (add R12)>;
 def SP : RegisterClass<"Fero", [i16], 16, (add R14)>;
