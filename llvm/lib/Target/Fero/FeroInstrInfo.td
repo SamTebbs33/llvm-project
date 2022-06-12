@@ -97,6 +97,8 @@ def : InstAlias<"ret", (JMR R15), 4>;
 /* Type 2 */
 def ADDI : Type2Inst<(outs GPR:$Ra), (ins GPR:$Rai, i16imm:$imm), 0b0010110, 0, "addi", "$Ra, $imm", "$Ra = $Rai">;
 def LD : Type2Inst<(outs GPR:$Ra), (ins i16imm:$imm), 0b0010001, 0, "ld", "$Ra, $imm", "">;
+def CMPI : Type2Inst<(outs FR:$f), (ins GPR:$Ra, i16imm:$imm), 0b0010011, 0, "cmpi", "$Ra, $imm", "">;
+def SET : Type2Inst<(outs GPR:$Ra), (ins FR:$f, i16imm:$imm), 0b0011000, 0, "set", "$Ra, $imm", "">;
 
 class JMP_c<bits<4> condition, string suffix, dag iops> : Type2Inst<(outs), !con((ins jmptarget:$addr), iops),  0b0010010, 0, "jmp" # suffix, "$addr", ""> {
   let Inst{14-11} = 0b0000;
@@ -135,6 +137,10 @@ def : Pat<(brcond (i16 (setne GPR:$Ra, GPR:$Rb)), bb:$addr),
           (JMP_notZ jmptarget:$addr, (CMP GPR:$Ra, GPR:$Rb))>;
 def : Pat<(brcond (i16 (setne GPR:$Ra, GPR:$Rb)), bb:$addr),
           (JMP_notZ jmptarget:$addr, (CMP GPR:$Ra, GPR:$Rb))>;
+def : Pat<(setcc GPR:$Ra, i16:$imm, SETEQ), (SET (CMP GPR:$Ra, (LD i16:$imm)), (i16 3))>;
+def : Pat<(setcc GPR:$Ra, i16:$imm, SETNE), (SET (CMP GPR:$Ra, (LD i16:$imm)), (i16 4))>;
+def : Pat<(setcc GPR:$Ra, GPR:$Rb, SETEQ), (SET (CMP GPR:$Ra, GPR:$Rb), (i16 3))>;
+def : Pat<(setcc GPR:$Ra, GPR:$Rb, SETNE), (SET (CMP GPR:$Ra, GPR:$Rb), (i16 4))>;
 
 // Type 3 patterns
 def : Pat<(load GPR:$Rb), (MOV_indirect GPR:$Rb, (i16 0))>;
@@ -142,4 +148,3 @@ def : Pat<(add GPR:$Ra, GPR:$Rb), (ADD GPR:$Ra, GPR:$Rb)>;
 def : Pat<(sub GPR:$Ra, GPR:$Rb), (SUB GPR:$Ra, GPR:$Rb)>;
 def : Pat<(store GPR:$Rb, GPR:$Ra), (STR GPR:$Ra, (i16 0), GPR:$Rb)>;
 def : Pat<(or GPR:$Ra, GPR:$Rb), (OR GPR:$Ra, GPR:$Rb)>;
-
