@@ -99,6 +99,13 @@ ASM_FUNCTION_RISCV_RE = re.compile(
     r'.Lfunc_end[0-9]+:\n',
     flags=(re.M | re.S))
 
+ASM_FUNCTION_FERO_RE = re.compile(
+    r'^(?P<func>[0-9a-zA-Z_]+):' # f: (name of function)
+    r'\s+\.cfi_startproc' # .fnstart
+    r'(?P<body>.*?)\n' # (body of the function)
+    r'.Lfunc_end[0-9]+:', # .Lfunc_end0: or # -- End function
+    flags=(re.M | re.S))
+
 ASM_FUNCTION_LANAI_RE = re.compile(
     r'^_?(?P<func>[^:]+):[ \t]*!+[ \t]*@"?(?P=func)"?\n'
     r'(?:[ \t]+.cfi_startproc\n)?'  # drop optional cfi noise
@@ -351,6 +358,16 @@ def scrub_asm_riscv(asm, args):
   asm = common.SCRUB_TRAILING_WHITESPACE_RE.sub(r'', asm)
   return asm
 
+def scrub_asm_fero(asm, args):
+  # Scrub runs of whitespace out of the assembly, but leave the leading
+  # whitespace in place.
+  asm = common.SCRUB_WHITESPACE_RE.sub(r' ', asm)
+  # Expand the tabs used for indentation.
+  asm = string.expandtabs(asm, 2)
+  # Strip trailing whitespace.
+  asm = common.SCRUB_TRAILING_WHITESPACE_RE.sub(r'', asm)
+  return asm
+
 def scrub_asm_lanai(asm, args):
   # Scrub runs of whitespace out of the assembly, but leave the leading
   # whitespace in place.
@@ -414,7 +431,7 @@ def scrub_asm_csky(asm, args):
   return asm
 
 def scrub_asm_nvptx(asm, args):
-  # Scrub runs of whitespace out of the assembly, but leave the leading
+ # Scrub runs of whitespace out of the assembly, but leave the leading
   # whitespace in place.
   asm = common.SCRUB_WHITESPACE_RE.sub(r' ', asm)
   # Expand the tabs used for indentation.
@@ -464,7 +481,8 @@ def get_run_handler(triple):
       'wasm32': (scrub_asm_wasm32, ASM_FUNCTION_WASM32_RE),
       've': (scrub_asm_ve, ASM_FUNCTION_VE_RE),
       'csky': (scrub_asm_csky, ASM_FUNCTION_CSKY_RE),
-      'nvptx': (scrub_asm_nvptx, ASM_FUNCTION_NVPTX_RE)
+      'nvptx': (scrub_asm_nvptx, ASM_FUNCTION_NVPTX_RE),
+      'fero': (scrub_asm_fero, ASM_FUNCTION_FERO_RE)
   }
   handler = None
   best_prefix = ''

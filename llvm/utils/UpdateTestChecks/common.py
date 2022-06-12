@@ -546,6 +546,7 @@ class FunctionTestBuilder:
                                extra=False)
       scrubbed_extra = do_scrub(filtered_body, scrubber, self._scrubber_args,
                                 extra=True)
+      print(scrubbed_body)
       if 'analysis' in m.groupdict():
         analysis = m.group('analysis')
         if analysis.lower() != 'cost model analysis':
