@@ -21,7 +21,7 @@ def Fero_CCallingConv : CallingConv<[
   CCIfType<[i16], CCAssignToReg<[R0, R1, R2, R3]>>,
 ]>;
 
-// BeyondRISC C Return Convention
+// C Return Convention
 def Fero_CRetConv : CallingConv<[
   CCIfType<[i1, i8], CCPromoteToType<i16>>,
 
@@ -29,4 +29,4 @@ def Fero_CRetConv : CallingConv<[
   CCIfType<[i16], CCAssignToReg<[R0]>>,
 ]>;
 
-def Fero_CalleeSavedRegs : CalleeSavedRegs<(add R4, R5, R6, R7, R8, R9, R10, R11, R12, R15)>;
+def Fero_CalleeSavedRegs : CalleeSavedRegs<(add R4, R5, R6, R7, R8, R9, R10, R11, R15)>;
