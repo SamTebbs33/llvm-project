@@ -95,7 +95,7 @@ def PseudoRET : Pseudo<(outs), (ins), [(fero_ret)]>, PseudoInstExpansion<(JMR R1
 def : InstAlias<"ret", (JMR R15), 4>;
 
 /* Type 2 */
-def ADDI : Type2Inst<(outs GPR:$Ra), (ins GPR:$Rai, i16imm:$imm), 0b0010110, 0, "add", "$Ra, $imm", "$Ra = $Rai">;
+def ADDI : Type2Inst<(outs GPR:$Ra), (ins GPR:$Rai, i16imm:$imm), 0b0010110, 0, "addi", "$Ra, $imm", "$Ra = $Rai">;
 def LD : Type2Inst<(outs GPR:$Ra), (ins i16imm:$imm), 0b0010001, 0, "ld", "$Ra, $imm", "">;
 
 class JMP_c<bits<4> condition, string suffix, dag iops> : Type2Inst<(outs), !con((ins jmptarget:$addr), iops),  0b0010010, 0, "jmp" # suffix, "$addr", ""> {
