@@ -88,3 +88,25 @@ entry:
   %0 = sub i16 %a, 1
   ret i16 %0
 }
+
+define void @jmp_notZ(i16 %a, i16* %b) {
+entry:
+; CHECK-LABEL: jmp_notZ:
+; CHECK: ld	r2, 0
+; CHECK-NEXT: cmp	r0, r2
+; CHECK-NEXT: jmp.notZ	.LBB9_2
+; CHECK-NEXT: %bb.1:                                ; %if.then
+; CHECK-NEXT: ld	r0, 0
+; CHECK-NEXT: str	[r1], r0
+; CHECK-NEXT: .LBB9_2:
+; CHECK-NEXT: ret
+  %cmp = icmp eq i16 %a, 0
+  br i1 %cmp, label %if.then, label %if.end
+
+if.then:                                          ; preds = %entry
+  store i16 0, i16* %b
+  br label %if.end
+
+if.end:                                           ; preds = %if.then, %entry
+  ret void
+}

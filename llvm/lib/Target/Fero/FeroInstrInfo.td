@@ -146,8 +146,6 @@ def : Pat<(sub GPR:$Ra, (i16 1)), (DEC GPR:$Ra)>;
 def : Pat<(br bb:$addr), (JMP jmptarget:$addr)>;
 def : Pat<(brcond (i16 (setne GPR:$Ra, GPR:$Rb)), bb:$addr),
           (JMP_notZ jmptarget:$addr, (CMP GPR:$Ra, GPR:$Rb))>;
-def : Pat<(brcond (i16 (setne GPR:$Ra, GPR:$Rb)), bb:$addr),
-          (JMP_notZ jmptarget:$addr, (CMP GPR:$Ra, GPR:$Rb))>;
 def : Pat<(setcc GPR:$Ra, i16:$imm, SETEQ), (SET (CMP GPR:$Ra, (LD i16:$imm)), (i16 1))>;
 def : Pat<(setcc GPR:$Ra, i16:$imm, SETNE), (SET (CMP GPR:$Ra, (LD i16:$imm)), (i16 2))>;
 def : Pat<(setcc GPR:$Ra, GPR:$Rb, SETEQ), (SET (CMP GPR:$Ra, GPR:$Rb), (i16 1))>;
