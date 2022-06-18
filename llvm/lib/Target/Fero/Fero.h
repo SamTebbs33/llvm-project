@@ -15,6 +15,7 @@
 #ifndef LLVM_LIB_TARGET_Fero_Fero_H
 #define LLVM_LIB_TARGET_Fero_Fero_H
 
+#include "llvm/PassRegistry.h"
 #include "MCTargetDesc/FeroMCTargetDesc.h"
 #include "llvm/Target/TargetMachine.h"
 
@@ -23,6 +24,8 @@ namespace llvm {
   class FunctionPass;
 
   // Declare functions to create passes here!
+  FunctionPass *createFeroPseudoExpansionPass();
+  void initializeFeroPseudoExpansionPass(PassRegistry &);
 
 } // end namespace llvm;
 

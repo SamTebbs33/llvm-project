@@ -127,4 +127,5 @@ bool FeroPassConfig::addInstSelector() {
 // machine code is emitted. return true if -print-machineinstrs should
 // print out the code after the passes.
 void FeroPassConfig::addPreEmitPass() {
+  addPass(createFeroPseudoExpansionPass());
 }

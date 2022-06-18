@@ -106,26 +106,36 @@ class JMP_c<bits<4> condition, string suffix, dag iops> : Type2Inst<(outs), !con
 }
 multiclass JMP_m {
   def "" : JMP_c<0, "", (ins)>;
-  def _NorZ : JMP_c<1, ".NZ", (ins FR:$f)>;
-  def _N : JMP_c<2, ".N", (ins FR:$f)>;
-  def _Z : JMP_c<3, ".Z", (ins FR:$f)>;
-  def _notZ : JMP_c<4, ".notZ", (ins FR:$f)>;
-  def _notN : JMP_c<5, ".notN", (ins FR:$f)>;
-  def _notNnotZ : JMP_c<6, ".notNnotZ", (ins FR:$f)>;
-  def _C : JMP_c<7, ".C", (ins FR:$f)>;
-  def _notC : JMP_c<8, ".notC", (ins FR:$f)>;
+  def _Z : JMP_c<1, ".Z", (ins FR:$f)>;
+  def _notZ : JMP_c<2, ".notZ", (ins FR:$f)>;
+  def _N : JMP_c<3, ".N", (ins FR:$f)>;
+  def _notN : JMP_c<4, ".notN", (ins FR:$f)>;
+  def _C : JMP_c<5, ".C", (ins FR:$f)>;
+  def _notC : JMP_c<6, ".notC", (ins FR:$f)>;
+  def _NorZ : JMP_c<7, ".NZ", (ins FR:$f)>;
+  def _notNnotZ : JMP_c<8, ".notNnotZ", (ins FR:$f)>;
 }
 defm JMP : JMP_m;
 def FeroJmpCC : SDNode<"FeroISD::JmpCC", SDT_JmpCC, [SDNPHasChain]>;
 
 /* Type 3 */
-def MOV : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rb), 0b0011101, 0, "mov", "$Ra, $Rb", "">;
+class MOV_c<dag iops, bits<4> cond, string suffix> : Type3Inst<(outs GPR:$Ra), !con((ins GPR:$Rb), iops), 0b0011101, 0, "mov" # suffix, "$Ra, $Rb", ""> {
+  let Inst{10-7} = cond;
+}
+multiclass MOV_m {
+  def "" : MOV_c<(ins), 0, "">;
+  def _Z : MOV_c<(ins FR:$f), 3, ".Z">;
+  def _notZ : MOV_c<(ins FR:$f), 4, ".notZ">;
+}
+defm MOV : MOV_m;
 def MOV_indirect : Type3Inst<(outs GPR:$Ra), (ins MEMroffset:$Rb), 0b0011101, 1, "mov", "$Ra, $Rb", "">;
 def ADD : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011010, 0, "add", "$Ra, $Rb", "$Ra = $Rai">;
 def SUB : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011101, 0, "sub", "$Ra, $Rb", "$Ra = $Rai">;
 def CMP : Type2Inst<(outs FR:$f), (ins GPR:$Ra, GPR:$Rb), 0b0000010, 0, "cmp", "$Ra, $Rb", "">;
 def OR : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0100000, 0, "or", "$Ra, $Rb", "$Ra = $Rai">;
 def STR : Type3Inst<(outs), (ins MEMroffset:$Ra, GPR:$Rb), 0b0100001, 0, "str", "$Ra, $Rb", "">;
+
+def PseudoSelectCC : Pseudo<(outs GPR:$out, FR:$f), (ins GPR:$x, GPR:$y, GPR:$Ra, GPR:$Rb, i16imm:$flag)>;
 
 // Type 1 patterns
 def : Pat<(add GPR:$Ra, (i16 1)), (INC GPR:$Ra)>;
@@ -137,10 +147,12 @@ def : Pat<(brcond (i16 (setne GPR:$Ra, GPR:$Rb)), bb:$addr),
           (JMP_notZ jmptarget:$addr, (CMP GPR:$Ra, GPR:$Rb))>;
 def : Pat<(brcond (i16 (setne GPR:$Ra, GPR:$Rb)), bb:$addr),
           (JMP_notZ jmptarget:$addr, (CMP GPR:$Ra, GPR:$Rb))>;
-def : Pat<(setcc GPR:$Ra, i16:$imm, SETEQ), (SET (CMP GPR:$Ra, (LD i16:$imm)), (i16 3))>;
-def : Pat<(setcc GPR:$Ra, i16:$imm, SETNE), (SET (CMP GPR:$Ra, (LD i16:$imm)), (i16 4))>;
-def : Pat<(setcc GPR:$Ra, GPR:$Rb, SETEQ), (SET (CMP GPR:$Ra, GPR:$Rb), (i16 3))>;
-def : Pat<(setcc GPR:$Ra, GPR:$Rb, SETNE), (SET (CMP GPR:$Ra, GPR:$Rb), (i16 4))>;
+def : Pat<(setcc GPR:$Ra, i16:$imm, SETEQ), (SET (CMP GPR:$Ra, (LD i16:$imm)), (i16 1))>;
+def : Pat<(setcc GPR:$Ra, i16:$imm, SETNE), (SET (CMP GPR:$Ra, (LD i16:$imm)), (i16 2))>;
+def : Pat<(setcc GPR:$Ra, GPR:$Rb, SETEQ), (SET (CMP GPR:$Ra, GPR:$Rb), (i16 1))>;
+def : Pat<(setcc GPR:$Ra, GPR:$Rb, SETNE), (SET (CMP GPR:$Ra, GPR:$Rb), (i16 2))>;
+def : Pat<(selectcc GPR:$x, GPR:$y, GPR:$Ra, GPR:$Rb, SETEQ), (PseudoSelectCC GPR:$x, GPR:$y, GPR:$Ra, GPR:$Rb, (i16 1))>;
+def : Pat<(select (setcc GPR:$x, GPR:$y, SETEQ), GPR:$Ra, GPR:$Rb), (PseudoSelectCC GPR:$x, GPR:$y, GPR:$Ra, GPR:$Rb, (i16 1))>;
 
 // Type 3 patterns
 def : Pat<(load GPR:$Rb), (MOV_indirect GPR:$Rb, (i16 0))>;

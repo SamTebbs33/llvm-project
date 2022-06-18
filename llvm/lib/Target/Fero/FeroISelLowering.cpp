@@ -120,7 +120,7 @@ SDValue FeroTargetLowering::LowerFormalArguments(
                                     SmallVectorImpl<SDValue> &InVals) const
 {
   assert((CallingConv::C == CallConv || CallingConv::Fast == CallConv) &&
-		 "Unsupported CallingConv to FORMAL_ARGS");
+        "Unsupported CallingConv to FORMAL_ARGS");
 
   MachineFunction &MF = DAG.getMachineFunction();
   MachineFrameInfo &MFI = MF.getFrameInfo();
