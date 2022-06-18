@@ -70,3 +70,21 @@ entry:
   %. = zext i1 %cmp to i16
   ret i16 %.
 }
+
+define i16 @inc(i16 %a) {
+entry:
+  ; CHECK-LABEL: inc:
+  ; CHECK: inc r0
+  ; CHECK-NEXT: ret
+  %0 = add i16 %a, 1
+  ret i16 %0
+}
+
+define i16 @dec(i16 %a) {
+entry:
+  ; CHECK-LABEL: dec:
+  ; CHECK: dec r0
+  ; CHECK-NEXT: ret
+  %0 = sub i16 %a, 1
+  ret i16 %0
+}

@@ -139,6 +139,7 @@ def PseudoSelectCC : Pseudo<(outs GPR:$out, FR:$f), (ins GPR:$x, GPR:$y, GPR:$Ra
 
 // Type 1 patterns
 def : Pat<(add GPR:$Ra, (i16 1)), (INC GPR:$Ra)>;
+def : Pat<(add GPR:$Ra, (i16 -1)), (DEC GPR:$Ra)>;
 def : Pat<(sub GPR:$Ra, (i16 1)), (DEC GPR:$Ra)>;
 
 // Type 2 patterns
