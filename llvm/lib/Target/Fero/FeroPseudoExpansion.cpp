@@ -55,7 +55,6 @@ INITIALIZE_PASS(FeroPseudoExpansion, DEBUG_TYPE, "Fero Pseudo Expansion", false,
 bool FeroPseudoExpansion::runOnMachineFunction(MachineFunction &MF) {
   if (skipFunction(MF.getFunction()))
     return false;
-  dbgs() << DEBUG_PREFIX << "Running on " << MF.getName() << "\n";
   const FeroSubtarget &ST = MF.getSubtarget<FeroSubtarget>();
   TII = static_cast<const FeroInstrInfo *>(ST.getInstrInfo());
   bool Changed = false;
