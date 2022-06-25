@@ -135,6 +135,7 @@ def SUB : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0011101, 0, "sub"
 def CMP : Type2Inst<(outs FR:$f), (ins GPR:$Ra, GPR:$Rb), 0b0000010, 0, "cmp", "$Ra, $Rb", "">;
 def AND : Type2Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0000011, 0, "and", "$Ra, $Rb", "$Ra = $Rai">;
 def OR : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0100000, 0, "or", "$Ra, $Rb", "$Ra = $Rai">;
+def SHL : Type3Inst<(outs GPR:$Ra), (ins GPR:$Rai, GPR:$Rb), 0b0100001, 0, "shl", "$Ra, $Rb", "$Ra = $Rai">;
 def STR : Type3Inst<(outs), (ins MEMroffset:$Ra, GPR:$Rb), 0b0100001, 0, "str", "$Ra, $Rb", "">;
 
 def PseudoSelectCC : Pseudo<(outs GPR:$out, FR:$f), (ins GPR:$x, GPR:$y, GPR:$Ra, GPR:$Rb, i16imm:$flag)>;
@@ -168,3 +169,4 @@ def : Pat<(sub GPR:$Ra, GPR:$Rb), (SUB GPR:$Ra, GPR:$Rb)>;
 def : Pat<(store GPR:$Rb, GPR:$Ra), (STR GPR:$Ra, (i16 0), GPR:$Rb)>;
 def : Pat<(or GPR:$Ra, GPR:$Rb), (OR GPR:$Ra, GPR:$Rb)>;
 def : Pat<(and GPR:$Ra, GPR:$Rb), (AND GPR:$Ra, GPR:$Rb)>;
+def : Pat<(shl GPR:$Ra, GPR:$Rb), (SHL GPR:$Ra, GPR:$Rb)>;

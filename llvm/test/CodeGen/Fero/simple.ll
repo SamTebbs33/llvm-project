@@ -117,3 +117,12 @@ entry:
   %and = and i16 %b, %a
   ret i16 %and
 }
+
+define i16 @shl(i16 %a, i16 %b) {
+entry:
+; CHECK-LABEL: shl:
+; CHECK: shl  r0, r1
+; CHECK-NEXT: ret
+  %shl = shl i16 %a, %b
+  ret i16 %shl
+}
