@@ -107,3 +107,13 @@ if.then:                                          ; preds = %entry
 if.end:                                           ; preds = %if.then, %entry
   ret void
 }
+
+define i16 @and(i16 %a, i16 %b) {
+entry:
+; CHECK-LABEL: and:
+; CHECK: and  r1, r0
+; CHECK-NEXT: mov r0, r1
+; CHECK-NEXT: ret
+  %and = and i16 %b, %a
+  ret i16 %and
+}
