@@ -50,7 +50,7 @@ entry:
 define i16 @setcc_eq(i16 %a, i16 %b) {
 entry:
 ; CHECK-LABEL: setcc_eq:
-; CHECK: cmpi	r0, 0
+; CHECK: tst  r0
 ; CHECK-NEXT: mov.Z	r0, r1
 ; CHECK-NEXT: ret
   %cmp = icmp eq i16 %a, 0
@@ -61,7 +61,7 @@ entry:
 define i16 @set(i16 %a, i16 %b) {
 entry:
 ; CHECK-LABEL: set:
-; CHECK: cmpi	r0, 0
+; CHECK: tst  r0
 ; CHECK-NEXT: set	r0, 2
 ; CHECK-NEXT: ret
   %cmp = icmp ne i16 %a, 0
@@ -90,7 +90,7 @@ entry:
 define void @jmp_notZ(i16 %a, i16* %b) {
 entry:
 ; CHECK-LABEL: jmp_notZ:
-; CHECK: cmpi	r0, 0
+; CHECK: tst  r0
 ; CHECK-NEXT: jmp.notZ	.LBB9_2
 ; CHECK-NEXT: %bb.1:                                ; %if.then
 ; CHECK-NEXT: ld	r0, 0

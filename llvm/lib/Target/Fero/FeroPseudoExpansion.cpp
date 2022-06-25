@@ -89,11 +89,10 @@ bool FeroPseudoExpansion::LowerSelectCC(MachineInstr* MI) {
   MachineOperand SrcA = MI->getOperand(4);
   MachineOperand SrcB = MI->getOperand(5);
   MachineOperand Flag = MI->getOperand(6);
-  assert (Dest.isReg() && CmpX.isReg() && CmpY.isReg() && SrcA.isReg() && SrcB.isReg() && Flag.isImm() && "Unexpected PseudoSelectCC operand type");
+  assert (Dest.isReg() && CmpX.isReg() && (CmpY.isReg() || (CmpY.isImm() && CmpY.getImm() == 0)) && SrcA.isReg() && SrcB.isReg() && Flag.isImm() && "Unexpected PseudoSelectCC operand type");
 
   MCPhysReg DestReg = Dest.getReg();
   MCPhysReg CmpXReg = CmpX.getReg();
-  MCPhysReg CmpYReg = CmpY.getReg();
   MCPhysReg SrcAReg = SrcA.getReg();
   MCPhysReg SrcBReg = SrcB.getReg();
   unsigned FlagImm = Flag.getImm();
@@ -109,7 +108,10 @@ bool FeroPseudoExpansion::LowerSelectCC(MachineInstr* MI) {
     default:
       llvm_unreachable("unsupported flag value in LowerSelectCC");
   }
-  BuildMI(*MI->getParent(), MI, DL, TII->get(Fero::CMP)).addDef(Fero::FR).addReg(CmpXReg).addReg(CmpYReg);
+
+  if (CmpY.isImm()) BuildMI(*MI->getParent(), MI, DL, TII->get(Fero::TST)).addDef(Fero::FR).addReg(CmpXReg);
+  else BuildMI(*MI->getParent(), MI, DL, TII->get(Fero::CMP)).addDef(Fero::FR).addReg(CmpXReg).addReg(CmpY.getReg());
+
   if (SrcAReg != DestReg) BuildMI(*MI->getParent(), MI, DL, TII->get(OpcTrue)).addDef(DestReg).addReg(SrcAReg).addReg(Fero::FR);
   if (SrcBReg != DestReg) BuildMI(*MI->getParent(), MI, DL, TII->get(OpcFalse)).addDef(DestReg).addReg(SrcBReg).addReg(Fero::FR);
   MI->eraseFromParent();

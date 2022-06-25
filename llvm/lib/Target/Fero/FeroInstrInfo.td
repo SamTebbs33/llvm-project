@@ -87,6 +87,7 @@ let isCall = 1 in
 def JMR : Type1Inst<(outs), (ins GPR:$Ra), 0b0001110, 0, "jmr", "$Ra", "">;
 def INC : Type1Inst<(outs GPR:$Ra), (ins GPR:$Rai), 0b0001000, 0, "inc", "$Ra", "$Ra = $Rai">;
 def DEC : Type1Inst<(outs GPR:$Ra), (ins GPR:$Rai), 0b0001001, 0, "dec", "$Ra", "$Ra = $Rai">;
+def TST : Type1Inst<(outs FR:$f), (ins GPR:$Ra), 0b0000111, 0, "tst", "$Ra", "">;
 
 def fero_ret : SDNode<"FeroISD::Ret", SDTNone,
                        [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
@@ -144,12 +145,18 @@ def : Pat<(sub GPR:$Ra, (i16 1)), (DEC GPR:$Ra)>;
 
 // Type 2 patterns
 def : Pat<(br bb:$addr), (JMP jmptarget:$addr)>;
+def : Pat<(brcond (i16 (setne GPR:$Ra, (i16 0))), bb:$addr),
+          (JMP_notZ jmptarget:$addr, (TST GPR:$Ra))>;
 def : Pat<(brcond (i16 (setne GPR:$Ra, GPR:$Rb)), bb:$addr),
           (JMP_notZ jmptarget:$addr, (CMP GPR:$Ra, GPR:$Rb))>;
+def : Pat<(setcc GPR:$Ra, (i16 0), SETEQ), (SET (TST GPR:$Ra), (i16 1))>;
+def : Pat<(setcc GPR:$Ra, (i16 0), SETNE), (SET (TST GPR:$Ra), (i16 2))>;
 def : Pat<(setcc GPR:$Ra, i16:$imm, SETEQ), (SET (CMP GPR:$Ra, (LD i16:$imm)), (i16 1))>;
 def : Pat<(setcc GPR:$Ra, i16:$imm, SETNE), (SET (CMP GPR:$Ra, (LD i16:$imm)), (i16 2))>;
 def : Pat<(setcc GPR:$Ra, GPR:$Rb, SETEQ), (SET (CMP GPR:$Ra, GPR:$Rb), (i16 1))>;
 def : Pat<(setcc GPR:$Ra, GPR:$Rb, SETNE), (SET (CMP GPR:$Ra, GPR:$Rb), (i16 2))>;
+def : Pat<(selectcc GPR:$x, (i16 0), GPR:$Ra, GPR:$Rb, SETEQ), (PseudoSelectCC GPR:$x, (i16 0), GPR:$Ra, GPR:$Rb, (i16 1))>;
+def : Pat<(select (setcc GPR:$x, (i16 0), SETEQ), GPR:$Ra, GPR:$Rb), (PseudoSelectCC GPR:$x, (i16 0), GPR:$Ra, GPR:$Rb, (i16 1))>;
 def : Pat<(selectcc GPR:$x, GPR:$y, GPR:$Ra, GPR:$Rb, SETEQ), (PseudoSelectCC GPR:$x, GPR:$y, GPR:$Ra, GPR:$Rb, (i16 1))>;
 def : Pat<(select (setcc GPR:$x, GPR:$y, SETEQ), GPR:$Ra, GPR:$Rb), (PseudoSelectCC GPR:$x, GPR:$y, GPR:$Ra, GPR:$Rb, (i16 1))>;
 

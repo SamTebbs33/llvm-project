@@ -4,23 +4,23 @@
 define dso_local i16 @ld_keep(i16 %a, i16 %b) {
 entry:
 ; CHECK-LABEL: ld_keep:
-; CHECK: ld	r2, 0
-; CHECK-NEXT: cmpi	r0, 0
+; CHECK: ld	r2, 1
+; CHECK-NEXT: cmpi	r0, 1
 ; CHECK-NEXT: mov.Z	r0, r1
 ; CHECK-NEXT: mov.notZ	r0, r2
 ; CHECK-NEXT: ret
-  %cmp = icmp eq i16 %a, 0
-  %b. = select i1 %cmp, i16 %b, i16 0
+  %cmp = icmp eq i16 %a, 1
+  %b. = select i1 %cmp, i16 %b, i16 1
   ret i16 %b.
 }
 
 define dso_local i16 @ld_cmp(i16 %a, i16 %b) {
 ; CHECK-LABEL: ld_cmp:
-; CHECK: cmpi	r0, 0
+; CHECK: cmpi	r0, 1
 ; CHECK-NEXT: mov.Z	r0, r1
 ; CHECK-NEXT: ret
 entry:
-  %cmp = icmp eq i16 %a, 0
+  %cmp = icmp eq i16 %a, 1
   %b.a = select i1 %cmp, i16 %b, i16 %a
   ret i16 %b.a
 }
