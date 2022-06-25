@@ -128,4 +128,5 @@ bool FeroPassConfig::addInstSelector() {
 // print out the code after the passes.
 void FeroPassConfig::addPreEmitPass() {
   addPass(createFeroPseudoExpansionPass());
+  addPass(createFeroMICombinePass());
 }

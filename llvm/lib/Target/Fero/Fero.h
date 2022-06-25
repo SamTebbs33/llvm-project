@@ -24,6 +24,8 @@ namespace llvm {
   class FunctionPass;
 
   // Declare functions to create passes here!
+  FunctionPass *createFeroMICombinePass();
+  void initializeFeroMICombinePass(PassRegistry &);
   FunctionPass *createFeroPseudoExpansionPass();
   void initializeFeroPseudoExpansionPass(PassRegistry &);
 

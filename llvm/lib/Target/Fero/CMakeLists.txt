@@ -28,6 +28,7 @@ add_llvm_target(FeroCodeGen
   FeroISelDAGToDAG.cpp
   FeroTargetMachine.cpp
   FeroPseudoExpansion.cpp
+  FeroMICombine.cpp
 
   LINK_COMPONENTS
   Analysis
