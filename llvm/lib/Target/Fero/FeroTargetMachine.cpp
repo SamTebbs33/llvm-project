@@ -108,7 +108,7 @@ public:
   }
 
   bool addInstSelector() override;
-  void addPreEmitPass() override;
+  void addPostRegAlloc() override;
 };
 }
 
@@ -123,10 +123,7 @@ bool FeroPassConfig::addInstSelector() {
   return false;
 }
 
-// Implemented by targets that want to run passes immediately before
-// machine code is emitted. return true if -print-machineinstrs should
-// print out the code after the passes.
-void FeroPassConfig::addPreEmitPass() {
+void FeroPassConfig::addPostRegAlloc() {
   addPass(createFeroPseudoExpansionPass());
   addPass(createFeroMICombinePass());
 }
