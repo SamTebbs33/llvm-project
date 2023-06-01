@@ -1496,6 +1496,19 @@ InstructionCost ARMTTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
       return ST->getMVEVectorCostFactor(CostKind);
   }
 
+  // Unaligned double loads introduce 3 extra stores (1 to the stack), 2 loads
+  // and a register move.
+  // Unaligned float loads introduce an extra store and a register move.
+  // The codegen for these unaligned loads could be improved, but these costs
+  // represent what is currently produced.
+  // NEON doesn't mind these since it produces vld1/vst1.
+  if (!ST->hasNEON() && ST->hasFPRegs64() && Src->isDoubleTy() && Alignment &&
+      Alignment.valueOrOne() < 8)
+    return 4;
+  else if (!ST->hasNEON() && ST->hasFPRegs() && Src->isFloatTy() && Alignment &&
+           Alignment.valueOrOne() < 4)
+    return 2;
+
   int BaseCost = ST->hasMVEIntegerOps() && Src->isVectorTy()
                      ? ST->getMVEVectorCostFactor(CostKind)
                      : 1;
