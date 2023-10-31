@@ -1744,45 +1744,60 @@ void AArch64DAGToDAGISel::SelectCVTIntrinsic(SDNode *N, unsigned NumVecs,
 
 void AArch64DAGToDAGISel::SelectSMELdrStrZA(SDNode *N, bool IsLoad) {
   // Lower an SME LDR/STR ZA intrinsic to LDR_ZA_PSEUDO or STR_ZA.
-  // If the vector select parameter is an immediate in the range 0-15 then we
-  // can emit it directly into the instruction as it's a legal operand.
-  // Otherwise we must emit 0 as the vector select operand and modify the base
-  // register instead.
+  // If the vector number is an immediate between 0 and 15 inclusive then we can
+  // put that directly into the immediate field of the instruction. If it's
+  // outside of that range then we modify the base and slice by the greatest
+  // multiple of 15 smaller than that number and put the remainder in the
+  // instruction field. If it's not an immediate then we modify the base and
+  // slice registers by that number and put 0 in the instruction.
   SDLoc DL(N);
 
-  SDValue VecNum = N->getOperand(4), Base = N->getOperand(3),
-          TileSlice = N->getOperand(2);
-  int Imm = -1;
-  if (auto ImmNode = dyn_cast<ConstantSDNode>(VecNum))
-    Imm = ImmNode->getZExtValue();
+  SDValue TileSlice = N->getOperand(2);
+  SDValue Base = N->getOperand(3);
+  SDValue VecNum = N->getOperand(4);
+  SDValue Remainder = CurDAG->getTargetConstant(0, DL, MVT::i32);
 
-  if (Imm >= 0 && Imm <= 15) {
-    // 0-15 is a legal immediate so just pass it directly as a TargetConstant
-    VecNum = CurDAG->getTargetConstant(Imm, DL, MVT::i32);
-  } else {
+  // true if the base and slice registers need to me modified
+  bool NeedsAdd = true;
+  if (auto ImmNode = dyn_cast<ConstantSDNode>(VecNum)) {
+    int Imm = ImmNode->getSExtValue();
+    if (Imm >= 0 && Imm <= 15) {
+      Remainder = CurDAG->getTargetConstant(Imm, DL, MVT::i32);
+      NeedsAdd = false;
+    } else {
+      Remainder = CurDAG->getTargetConstant(Imm % 15, DL, MVT::i32);
+      NeedsAdd = true;
+      VecNum =
+          SDValue(CurDAG->getMachineNode(AArch64::MOVi32imm, DL, MVT::i32,
+                                         CurDAG->getTargetConstant(
+                                             Imm - (Imm % 15), DL, MVT::i32)),
+                  0);
+    }
+  }
+
+  if (NeedsAdd) {
     // Get the vector length that will be multiplied by vnum
     auto SVL = SDValue(
         CurDAG->getMachineNode(AArch64::RDSVLI_XI, DL, MVT::i64,
                                CurDAG->getTargetConstant(1, DL, MVT::i32)),
         0);
 
-    // Multiply SVL and vnum then add it to the base register
-    if (VecNum.getValueType() == MVT::i32)
-      VecNum = Widen(CurDAG, VecNum);
-    SDValue AddOps[] = {SVL, VecNum, Base};
-    auto Add = SDValue(
-        CurDAG->getMachineNode(AArch64::MADDXrrr, DL, MVT::i64, AddOps), 0);
-
-    // The base register has been modified to take vnum into account so just
-    // pass 0
-    VecNum = CurDAG->getTargetConstant(0, DL, MVT::i32);
-    Base = Add;
+    // Multiply SVL and vnum then add it to the base
+    // Just add vnum to the tileslice
+    SDValue BaseAddOps[] = {
+        SVL, VecNum.getValueType() == MVT::i32 ? Widen(CurDAG, VecNum) : VecNum,
+        Base};
+    SDValue SliceAddOps[] = {TileSlice, VecNum};
+    Base = SDValue(
+        CurDAG->getMachineNode(AArch64::MADDXrrr, DL, MVT::i64, BaseAddOps), 0);
+    TileSlice = SDValue(
+        CurDAG->getMachineNode(AArch64::ADDWrr, DL, MVT::i32, SliceAddOps), 0);
   }
 
-  SmallVector<SDValue, 6> Ops = {TileSlice, VecNum, Base};
+  SmallVector<SDValue, 6> Ops = {TileSlice, Remainder, Base};
   if (!IsLoad) {
     Ops.insert(Ops.begin(), CurDAG->getRegister(AArch64::ZA, MVT::Other));
-    Ops.push_back(VecNum);
+    Ops.push_back(Remainder);
   }
   auto LdrStr =
       CurDAG->getMachineNode(IsLoad ? AArch64::LDR_ZA_PSEUDO : AArch64::STR_ZA,

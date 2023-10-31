@@ -296,43 +296,39 @@ define void @str_with_off_16mulvl(ptr %ptr) {
   ret void;
 }
 
-define void @str_with_off_var(ptr %base, i32 %off) {
+define void @str_with_off_var(i32 %slice, ptr %base, i32 %off) {
 ; CHECK-LABEL: str_with_off_var:
 ; CHECK:       // %bb.0:
 ; CHECK-NEXT:    rdsvl x8, #1
-; CHECK-NEXT:    // kill: def $w1 killed $w1 def $x1
-; CHECK-NEXT:    mov w12, #16 // =0x10
-; CHECK-NEXT:    madd x8, x8, x1, x0
+; CHECK-NEXT:    // kill: def $w2 killed $w2 def $x2
+; CHECK-NEXT:    add w12, w0, w2
+; CHECK-NEXT:    madd x8, x8, x2, x1
 ; CHECK-NEXT:    str za[w12, 0], [x8]
 ; CHECK-NEXT:    ret
-  call void @llvm.aarch64.sme.str(i32 16, ptr %base, i32 %off)
+  call void @llvm.aarch64.sme.str(i32 %slice, ptr %base, i32 %off)
   ret void;
 }
 
-define void @str_with_off_15imm(ptr %ptr) {
+define void @str_with_off_15imm(i32 %slice, ptr %base) {
 ; CHECK-LABEL: str_with_off_15imm:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    mov w12, #15 // =0xf
-; CHECK-NEXT:    add x8, x0, #15
-; CHECK-NEXT:    str za[w12, 15], [x8, #15, mul vl]
+; CHECK-NEXT:    mov w12, w0
+; CHECK-NEXT:    str za[w12, 15], [x1, #15, mul vl]
 ; CHECK-NEXT:    ret
-  %base = getelementptr i8, ptr %ptr, i64 15
-  call void @llvm.aarch64.sme.str(i32 15, ptr %base, i32 15)
+  call void @llvm.aarch64.sme.str(i32 %slice, ptr %base, i32 15)
   ret void;
 }
 
-define void @str_with_off_16imm(ptr %ptr) {
+define void @str_with_off_16imm(i32 %slice, ptr %base) {
 ; CHECK-LABEL: str_with_off_16imm:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    rdsvl x8, #1
-; CHECK-NEXT:    mov w9, #16 // =0x10
-; CHECK-NEXT:    add x10, x0, #15
-; CHECK-NEXT:    madd x8, x8, x9, x10
-; CHECK-NEXT:    mov w12, #15 // =0xf
-; CHECK-NEXT:    str za[w12, 0], [x8]
+; CHECK-NEXT:    mov w8, #15 // =0xf
+; CHECK-NEXT:    rdsvl x9, #1
+; CHECK-NEXT:    madd x9, x9, x8, x1
+; CHECK-NEXT:    add w12, w0, w8
+; CHECK-NEXT:    str za[w12, 1], [x9, #1, mul vl]
 ; CHECK-NEXT:    ret
-  %base = getelementptr i8, ptr %ptr, i64 15
-  call void @llvm.aarch64.sme.str(i32 15, ptr %base, i32 16)
+  call void @llvm.aarch64.sme.str(i32 %slice, ptr %base, i32 16)
   ret void;
 }
 
