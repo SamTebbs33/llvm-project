@@ -109,6 +109,7 @@ void EmitSmeHeader(llvm::RecordKeeper &Records, llvm::raw_ostream &OS);
 void EmitSmeBuiltins(llvm::RecordKeeper &Records, llvm::raw_ostream &OS);
 void EmitSmeBuiltinCG(llvm::RecordKeeper &Records, llvm::raw_ostream &OS);
 void EmitSmeRangeChecks(llvm::RecordKeeper &Records, llvm::raw_ostream &OS);
+void EmitSmeStreamingAttrs(llvm::RecordKeeper &Records, llvm::raw_ostream &OS);
 
 void EmitMveHeader(llvm::RecordKeeper &Records, llvm::raw_ostream &OS);
 void EmitMveBuiltinDef(llvm::RecordKeeper &Records, llvm::raw_ostream &OS);

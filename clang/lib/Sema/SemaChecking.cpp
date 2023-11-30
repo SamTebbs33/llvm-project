@@ -3000,6 +3000,134 @@ static QualType getNeonEltType(NeonTypeFlags Flags, ASTContext &Context,
 
 enum ArmStreamingType { ArmNonStreaming, ArmStreaming, ArmStreamingCompatible };
 
+bool Sema::ParseSVEImmChecks(
+    CallExpr *TheCall, SmallVector<std::tuple<int, int, int>, 3> &ImmChecks) {
+  // Perform all the immediate checks for this builtin call.
+  bool HasError = false;
+  for (auto &I : ImmChecks) {
+    int ArgNum, CheckTy, ElementSizeInBits;
+    std::tie(ArgNum, CheckTy, ElementSizeInBits) = I;
+
+    typedef bool (*OptionSetCheckFnTy)(int64_t Value);
+
+    // Function that checks whether the operand (ArgNum) is an immediate
+    // that is one of the predefined values.
+    auto CheckImmediateInSet = [&](OptionSetCheckFnTy CheckImm,
+                                   int ErrDiag) -> bool {
+      // We can't check the value of a dependent argument.
+      Expr *Arg = TheCall->getArg(ArgNum);
+      if (Arg->isTypeDependent() || Arg->isValueDependent())
+        return false;
+
+      // Check constant-ness first.
+      llvm::APSInt Imm;
+      if (SemaBuiltinConstantArg(TheCall, ArgNum, Imm))
+        return true;
+
+      if (!CheckImm(Imm.getSExtValue()))
+        return Diag(TheCall->getBeginLoc(), ErrDiag) << Arg->getSourceRange();
+      return false;
+    };
+
+    switch ((SVETypeFlags::ImmCheckType)CheckTy) {
+    case SVETypeFlags::ImmCheck0_31:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0, 31))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheck0_13:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0, 13))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheck1_16:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 1, 16))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheck0_7:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0, 7))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheckExtract:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0,
+                                      (2048 / ElementSizeInBits) - 1))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheckShiftRight:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 1, ElementSizeInBits))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheckShiftRightNarrow:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 1,
+                                      ElementSizeInBits / 2))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheckShiftLeft:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0,
+                                      ElementSizeInBits - 1))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheckLaneIndex:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0,
+                                      (128 / (1 * ElementSizeInBits)) - 1))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheckLaneIndexCompRotate:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0,
+                                      (128 / (2 * ElementSizeInBits)) - 1))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheckLaneIndexDot:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0,
+                                      (128 / (4 * ElementSizeInBits)) - 1))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheckComplexRot90_270:
+      if (CheckImmediateInSet([](int64_t V) { return V == 90 || V == 270; },
+                              diag::err_rotation_argument_to_cadd))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheckComplexRotAll90:
+      if (CheckImmediateInSet(
+              [](int64_t V) {
+                return V == 0 || V == 90 || V == 180 || V == 270;
+              },
+              diag::err_rotation_argument_to_cmla))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheck0_1:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0, 1))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheck0_2:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0, 2))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheck0_3:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0, 3))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheck0_0:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0, 0))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheck0_15:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0, 15))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheck0_255:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 0, 255))
+        HasError = true;
+      break;
+    case SVETypeFlags::ImmCheck2_4_Mul2:
+      if (SemaBuiltinConstantArgRange(TheCall, ArgNum, 2, 4) ||
+          SemaBuiltinConstantArgMultiple(TheCall, ArgNum, 2))
+        HasError = true;
+      break;
+    }
+  }
+
+  return HasError;
+}
+
 static ArmStreamingType getArmStreamingFnType(const FunctionDecl *FD) {
   if (FD->hasAttr<ArmLocallyStreamingAttr>())
     return ArmStreaming;
@@ -3028,6 +3156,66 @@ static void checkArmStreamingBuiltin(Sema &S, CallExpr *TheCall,
         << TheCall->getSourceRange() << "streaming compatible";
     return;
   }
+
+  if (FnType == ArmNonStreaming && BuiltinType == ArmStreaming) {
+    S.Diag(TheCall->getBeginLoc(), diag::warn_attribute_arm_sm_incompat_builtin)
+        << TheCall->getSourceRange() << "non-streaming";
+  }
+}
+
+static bool hasSMEZAState(const FunctionDecl *FD) {
+  if (FD->hasAttr<ArmNewZAAttr>())
+    return true;
+  if (const auto *T = FD->getType()->getAs<FunctionProtoType>())
+    if (T->getAArch64SMEAttributes() & FunctionType::SME_PStateZASharedMask)
+      return true;
+  return false;
+}
+
+static bool hasSMEZAState(unsigned BuiltinID) {
+  switch (BuiltinID) {
+  default:
+    return false;
+#define GET_SME_BUILTIN_HAS_ZA_STATE
+#include "clang/Basic/arm_sme_builtins_za_state.inc"
+#undef GET_SME_BUILTIN_HAS_ZA_STATE
+  }
+}
+
+bool Sema::CheckSMEBuiltinFunctionCall(unsigned BuiltinID, CallExpr *TheCall) {
+  if (const FunctionDecl *FD = getCurFunctionDecl()) {
+    bool debug = FD->getDeclName().getAsString() == "incompat_sve_sm";
+    std::optional<ArmStreamingType> BuiltinType;
+
+    switch (BuiltinID) {
+    default:
+      break;
+#define GET_SME_STREAMING_ATTRS
+#include "clang/Basic/arm_sme_streaming_attrs.inc"
+#undef GET_SME_STREAMING_ATTRS
+    }
+
+    if (BuiltinType)
+      checkArmStreamingBuiltin(*this, TheCall, FD, *BuiltinType);
+
+    if (hasSMEZAState(BuiltinID) && !hasSMEZAState(FD))
+      Diag(TheCall->getBeginLoc(),
+           diag::warn_attribute_arm_za_builtin_no_za_state)
+          << TheCall->getSourceRange();
+  }
+
+  // Range check SME intrinsics that take immediate values.
+  SmallVector<std::tuple<int, int, int>, 3> ImmChecks;
+
+  switch (BuiltinID) {
+  default:
+    return false;
+#define GET_SME_IMMEDIATE_CHECK
+#include "clang/Basic/arm_sme_sema_rangechecks.inc"
+#undef GET_SME_IMMEDIATE_CHECK
+  }
+
+  return ParseSVEImmChecks(TheCall, ImmChecks);
 }
 
 bool Sema::CheckSVEBuiltinFunctionCall(unsigned BuiltinID, CallExpr *TheCall) {
@@ -3562,6 +3750,9 @@ bool Sema::CheckAArch64BuiltinFunctionCall(const TargetInfo &TI,
     return true;
 
   if (CheckSVEBuiltinFunctionCall(BuiltinID, TheCall))
+    return true;
+
+  if (CheckSMEBuiltinFunctionCall(BuiltinID, TheCall))
     return true;
 
   // For intrinsics which take an immediate value as part of the instruction,
