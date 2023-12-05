@@ -509,6 +509,9 @@ bool ClangTableGenMain(raw_ostream &OS, RecordKeeper &Records) {
   case GenArmSmeStreamingAttrs:
     EmitSmeStreamingAttrs(Records, OS);
     break;
+  case GenArmSmeBuiltinZAState:
+    EmitSmeBuiltinZAState(Records, OS);
+    break;
   case GenArmCdeHeader:
     EmitCdeHeader(Records, OS);
     break;

@@ -384,6 +384,9 @@ public:
   /// Emit all the range checks for the immediates.
   void createSMERangeChecks(raw_ostream &o);
 
+  /// Create a table for a builtin's requirement for PSTATE.ZA.
+  void createBuiltinZAState(raw_ostream &OS);
+
   /// Create intrinsic and add it to \p Out
   void createIntrinsic(Record *R,
                        SmallVectorImpl<std::unique_ptr<Intrinsic>> &Out);
@@ -1697,6 +1700,40 @@ void SVEEmitter::createSMERangeChecks(raw_ostream &OS) {
   OS << "#endif\n\n";
 }
 
+void SVEEmitter::createBuiltinZAState(raw_ostream &OS) {
+  std::vector<Record *> RV = Records.getAllDerivedDefinitions("Inst");
+  SmallVector<std::unique_ptr<Intrinsic>, 128> Defs;
+  for (auto *R : RV)
+    createIntrinsic(R, Defs);
+
+  // The mappings must be sorted based on BuiltinID.
+  llvm::sort(Defs, [](const std::unique_ptr<Intrinsic> &A,
+                      const std::unique_ptr<Intrinsic> &B) {
+    return A->getMangledName() < B->getMangledName();
+  });
+
+  OS << "#ifdef GET_SME_BUILTIN_HAS_ZA_STATE\n";
+
+  // Ensure these are only emitted once.
+  std::set<std::string> Emitted;
+
+  uint64_t IsSharedZAFlag = getEnumValueForFlag("IsSharedZA");
+  for (auto &Def : Defs) {
+    if (Emitted.find(Def->getMangledName()) != Emitted.end())
+      continue;
+
+    OS << "case SME::BI__builtin_sme_" << Def->getMangledName() << ":\n";
+    if (Def->isFlagSet(IsSharedZAFlag))
+      OS << "  return true;\n";
+    else
+      OS << "  return false;\n";
+
+    Emitted.insert(Def->getMangledName());
+  }
+
+  OS << "#endif\n\n";
+}
+
 void SVEEmitter::createStreamingAttrs(raw_ostream &OS, ACLEKind Kind) {
   std::vector<Record *> RV = Records.getAllDerivedDefinitions("Inst");
   SmallVector<std::unique_ptr<Intrinsic>, 128> Defs;
@@ -1791,5 +1828,9 @@ void EmitSmeRangeChecks(RecordKeeper &Records, raw_ostream &OS) {
 
 void EmitSmeStreamingAttrs(RecordKeeper &Records, raw_ostream &OS) {
   SVEEmitter(Records).createStreamingAttrs(OS, ACLEKind::SME);
+}
+
+void EmitSmeBuiltinZAState(RecordKeeper &Records, raw_ostream &OS) {
+  SVEEmitter(Records).createBuiltinZAState(OS);
 }
 } // End namespace clang
