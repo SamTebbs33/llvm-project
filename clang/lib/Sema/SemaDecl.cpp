@@ -8907,7 +8907,8 @@ void Sema::CheckVariableDeclarationType(VarDecl *NewVD) {
     llvm::StringMap<bool> CallerFeatureMap;
     Context.getFunctionFeatureMap(CallerFeatureMap, FD);
     if (!Builtin::evaluateRequiredTargetFeatures(
-        "sve", CallerFeatureMap)) {
+        "sve", CallerFeatureMap) && !!Builtin::evaluateRequiredTargetFeatures(
+        "sme", CallerFeatureMap)) {
       Diag(NewVD->getLocation(), diag::err_sve_vector_in_non_sve_target) << T;
       NewVD->setInvalidDecl();
       return;
