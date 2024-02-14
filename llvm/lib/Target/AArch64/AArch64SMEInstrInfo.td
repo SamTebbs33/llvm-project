@@ -29,7 +29,7 @@ def AArch64_save_zt : SDNode<"AArch64ISD::SAVE_ZT", SDTypeProfile<0, 2,
                              [SDTCisInt<0>, SDTCisPtrTy<1>]>,
                              [SDNPHasChain, SDNPSideEffect, SDNPMayStore]>;
 
-let usesCustomInserter = 1 in {
+let usesCustomInserter = 1, Defs = [SP], Uses = [SP] in {
   def ExpandZABuffer : Pseudo<(outs), (ins), []>, Sched<[WriteI]> {}
 }
 
