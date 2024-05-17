@@ -357,6 +357,43 @@ public:
     return BaseT::isLegalNTLoad(DataType, Alignment);
   }
 
+  InstructionCost
+  getPartialReductionCost(unsigned Opcode, Type *InputType, Type *AccumType,
+                          ElementCount VF,
+                          TTI::PartialReductionExtendKind OpAExtend,
+                          TTI::PartialReductionExtendKind OpBExtend,
+                          std::optional<unsigned> BinOp) const {
+    InstructionCost Invalid = InstructionCost::getInvalid();
+
+    if (Opcode != Instruction::Add)
+      return Invalid;
+
+    EVT InputEVT = EVT::getEVT(InputType);
+    EVT AccumEVT = EVT::getEVT(AccumType);
+
+    if (VF.isScalable() && !ST->isSVEorStreamingSVEAvailable())
+      return Invalid;
+    if (VF.isFixed() && !ST->isNeonAvailable() && !ST->hasDotProd())
+      return Invalid;
+
+    if (InputEVT == MVT::i8) {
+      if (AccumEVT != MVT::i32)
+        return Invalid;
+    } else if (InputEVT == MVT::i16) {
+      if (AccumEVT != MVT::i64)
+        return Invalid;
+    } else
+      return Invalid;
+
+    if (OpAExtend == TTI::PR_None || OpBExtend == TTI::PR_None)
+      return Invalid;
+
+    if (!BinOp || (*BinOp) != Instruction::Mul)
+      return Invalid;
+
+    return InstructionCost::getMin();
+  }
+
   bool enableOrderedReductions() const { return true; }
 
   InstructionCost getInterleavedMemoryOpCost(

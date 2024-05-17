@@ -1568,7 +1568,139 @@ public:
   /// trivially hoistable.
   bool shouldConsiderInvariant(Value *Op);
 
+  /// A chain of instructions that form a partial reduction.
+  /// Designed to match: reduction_bin_op (bin_op (extend (A), (extend (B))),
+  /// accumulator)
+  struct PartialReductionChain {
+    /// The top-level binary operation that forms the reduction to a scalar
+    /// after the loop body
+    Instruction *Reduction;
+    /// The inner binary operation that forms the reduction to a vector value
+    /// within the loop body
+    Instruction *BinOp;
+    /// The extension of each of the inner binary operation's operands
+    Instruction *ExtendA;
+    Instruction *ExtendB;
+
+    /// The accumulator that is reduced to a scalar after the loop body
+    Value *Accumulator;
+
+    /// The scaling factor between the size of the reduction type and the
+    /// (possibly extended) inputs
+    unsigned ScaleFactor;
+  };
+
+  using PartialReductionList = DenseMap<Instruction *, PartialReductionChain>;
+
+  PartialReductionList getPartialReductionChains() {
+    return PartialReductionChains;
+  }
+
+  std::optional<PartialReductionChain>
+  getInstructionsPartialReduction(Instruction *I) const {
+    auto PairIt = PartialReductionChains.find(I);
+    if (PairIt == PartialReductionChains.end())
+      return std::nullopt;
+    return PairIt->second;
+  }
+
+  void removePartialReduction(Instruction *Instr) {
+    PartialReductionChains.erase(Instr);
+  }
+
+  void addPartialReductionIfSupported(Instruction *Instr, ElementCount VF) {
+
+    // Try to commutatively match:
+    // bin_op (one_use bin_op (z_or_sext, z_or_sext), phi)
+
+    auto *Root = dyn_cast<BinaryOperator>(Instr);
+    if (!Root)
+      return;
+
+    auto *BinOp = dyn_cast<BinaryOperator>(Root->getOperand(0));
+    auto *Phi = dyn_cast<PHINode>(Root->getOperand(1));
+    if (!BinOp) {
+      BinOp = dyn_cast<BinaryOperator>(Root->getOperand(1));
+      Phi = dyn_cast<PHINode>(Root->getOperand(0));
+    }
+    if (!BinOp || !BinOp->hasOneUse()) {
+      LLVM_DEBUG(
+          dbgs() << "Root was not a one-use binary operator, cannot create a "
+                    "partial reduction.\n");
+      return;
+    }
+    if (!Phi) {
+      LLVM_DEBUG(dbgs() << "Expected Phi node was not a phi, cannot create a "
+                           "partial reduction.\n");
+      return;
+    }
+
+    auto IsSextOrZext = [](Instruction *I) {
+      return I && (I->getOpcode() == Instruction::ZExt ||
+                   I->getOpcode() == Instruction::SExt);
+    };
+
+    auto *ExtA = dyn_cast<Instruction>(BinOp->getOperand(0));
+    auto *ExtB = dyn_cast<Instruction>(BinOp->getOperand(1));
+    if (!IsSextOrZext(ExtA) || !IsSextOrZext(ExtB)) {
+      LLVM_DEBUG(dbgs() << "Expected extends were not extends, cannot create a "
+                           "partial reduction.\n");
+      return;
+    }
+
+    Value *A = ExtA->getOperand(0);
+    Value *B = ExtB->getOperand(0);
+    // Check that the extends extend from the same type
+    if (A->getType() != B->getType()) {
+      LLVM_DEBUG(dbgs() << "Extends don't extend from the same type, cannot "
+                           "create a partial reduction.\n");
+      return;
+    }
+
+    // Check that the extends extend to the same type
+    if (ExtA->getType() != ExtB->getType()) {
+      LLVM_DEBUG(
+          dbgs() << "Extends don't extend to the same type, cannot create "
+                    "a partial reduction.\n");
+      return;
+    }
+
+    // Check that the second phi value is the instruction we're looking at
+    Instruction *MaybeAdd = dyn_cast<Instruction>(
+        Phi->getIncomingValueForBlock(TheLoop->getLoopLatch()));
+    if (!MaybeAdd || MaybeAdd != Instr) {
+      LLVM_DEBUG(dbgs() << "Second PHI value is not the root binop, cannot "
+                           "create a partial reduction.\n");
+      return;
+    }
+
+    TTI::PartialReductionExtendKind OpAExtend =
+        TargetTransformInfo::getPartialReductionExtendKind(ExtA);
+    TTI::PartialReductionExtendKind OpBExtend =
+        TargetTransformInfo::getPartialReductionExtendKind(ExtB);
+    InstructionCost Cost = TTI.getPartialReductionCost(
+        Instr->getOpcode(), A->getType(), Phi->getType(), VF, OpAExtend,
+        OpBExtend, std::make_optional(BinOp->getOpcode()));
+    if (Cost == InstructionCost::getInvalid())
+      return;
+
+    PartialReductionChain Chain;
+    Chain.Reduction = Instr;
+    Chain.BinOp = BinOp;
+    Chain.ExtendA = ExtA;
+    Chain.ExtendB = ExtB;
+    Chain.Accumulator = Phi;
+
+    unsigned InputSizeBits = A->getType()->getScalarSizeInBits();
+    unsigned ResultSizeBits = Chain.Reduction->getType()->getScalarSizeInBits();
+    Chain.ScaleFactor = ResultSizeBits / InputSizeBits;
+
+    PartialReductionChains[Instr] = Chain;
+  }
+
 private:
+  PartialReductionList PartialReductionChains;
+
   unsigned NumPredStores = 0;
 
   /// \return An upper bound for the vectorization factors for both
@@ -4740,6 +4872,11 @@ bool LoopVectorizationPlanner::isCandidateForEpilogueVectorization(
         return false;
   }
 
+  // Prevent epilogue vectorization if a partial reduction is involved
+  // TODO Is there a cleaner way to check this?
+  if (CM.getPartialReductionChains().size() > 0)
+    return false;
+
   // Epilogue vectorization code has not been auditted to ensure it handles
   // non-latch exits properly.  It may be fine, but it needs auditted and
   // tested.
@@ -7089,6 +7226,18 @@ void LoopVectorizationCostModel::collectValuesToIgnore() {
     const SmallVectorImpl<Instruction *> &Casts = IndDes.getCastInsts();
     VecValuesToIgnore.insert(Casts.begin(), Casts.end());
   }
+
+  // Ignore any values that we know will be flattened
+  for (auto It : getPartialReductionChains()) {
+    PartialReductionChain Chain = It.second;
+    SmallVector<Value *> PartialReductionValues{Chain.Reduction, Chain.BinOp,
+                                                Chain.ExtendA, Chain.ExtendB,
+                                                Chain.Accumulator};
+    ValuesToIgnore.insert(PartialReductionValues.begin(),
+                          PartialReductionValues.end());
+    VecValuesToIgnore.insert(PartialReductionValues.begin(),
+                             PartialReductionValues.end());
+  }
 }
 
 void LoopVectorizationCostModel::collectInLoopReductions() {
@@ -7205,6 +7354,47 @@ LoopVectorizationPlanner::planInVPlanNativePath(ElementCount UserVF) {
 
 void LoopVectorizationPlanner::plan(ElementCount UserVF, unsigned UserIC) {
   assert(OrigLoop->isInnermost() && "Inner loop expected.");
+
+  for (auto ReductionVar : Legal->getReductionVars()) {
+    auto *ReductionExitInstr = ReductionVar.second.getLoopExitInstr();
+    CM.addPartialReductionIfSupported(ReductionExitInstr, UserVF);
+  }
+
+  // Wider-than-legal vector types (coming from extends in partial reductions)
+  // should only be used by partial reductions so that they are lowered properly
+
+  // Build up a set of partial reduction bin ops for efficient use checking
+  SmallSet<Instruction *, 4> PartialReductionBinOps;
+  for (auto It : CM.getPartialReductionChains()) {
+    if (It.second.BinOp)
+      PartialReductionBinOps.insert(It.second.BinOp);
+  }
+
+  auto ExtendIsOnlyUsedByPartialReductions =
+      [PartialReductionBinOps](Instruction *Extend) {
+        for (auto *Use : Extend->users()) {
+          Instruction *UseInstr = dyn_cast<Instruction>(Use);
+          if (!PartialReductionBinOps.contains(UseInstr))
+            return false;
+        }
+        return true;
+      };
+
+  // Check if each use of a chain's two extends is a partial reduction
+  // and remove those that have non-partial reduction users
+  SmallSet<Instruction *, 4> PartialReductionsToRemove;
+  for (auto It : CM.getPartialReductionChains()) {
+    LoopVectorizationCostModel::PartialReductionChain Chain = It.second;
+    if (!ExtendIsOnlyUsedByPartialReductions(Chain.ExtendA) ||
+        !ExtendIsOnlyUsedByPartialReductions(Chain.ExtendB)) {
+      PartialReductionsToRemove.insert(Chain.Reduction);
+      LLVM_DEBUG(dbgs() << "Removing the partial reduction for an instruction "
+                           "with an extend used by something other than a "
+                           "partial reduction "
+                        << *Chain.Reduction << "\n");
+    }
+  }
+
   CM.collectValuesToIgnore();
   CM.collectElementTypesForWidening();
 
@@ -7228,6 +7418,23 @@ void LoopVectorizationPlanner::plan(ElementCount UserVF, unsigned UserIC) {
 
   if (CM.foldTailByMasking())
     Legal->prepareToFoldTailByMasking();
+
+  for (auto Pair : CM.getPartialReductionChains()) {
+    // TODO: Allow creating partial reductions when predicating. The select at
+    // the end of the loop chooses between the phi value and most recent partial
+    // reduction result, both of which have different VFs to the active lane
+    // mask.
+    Instruction *Instr = Pair.first;
+    if (CM.blockNeedsPredicationForAnyReason(Instr->getParent())) {
+      LLVM_DEBUG(dbgs() << "LV: Removing the partial reduction for an "
+                           "instruction in a predicated block: "
+                        << *Instr << "\n");
+      PartialReductionsToRemove.insert(Instr);
+    }
+  }
+
+  for (auto *Insn : PartialReductionsToRemove)
+    CM.removePartialReduction(Insn);
 
   ElementCount MaxUserVF =
       UserVF.isScalable() ? MaxFactors.ScalableVF : MaxFactors.FixedVF;
@@ -8759,6 +8966,18 @@ VPReplicateRecipe *VPRecipeBuilder::handleReplication(Instruction *I,
   return Recipe;
 }
 
+unsigned getScaleFactorForReductionPhi(PHINode *Phi,
+                                       LoopVectorizationCostModel &CM) {
+  for (auto *User : Phi->users()) {
+    if (auto *I = dyn_cast<Instruction>(User)) {
+      if (auto Chain = CM.getInstructionsPartialReduction(I)) {
+        return Chain->ScaleFactor;
+      }
+    }
+  }
+  return 1;
+}
+
 VPRecipeBase *
 VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
                                         ArrayRef<VPValue *> Operands,
@@ -8783,9 +9002,12 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
           Legal->getReductionVars().find(Phi)->second;
       assert(RdxDesc.getRecurrenceStartValue() ==
              Phi->getIncomingValueForBlock(OrigLoop->getLoopPreheader()));
-      PhiRecipe = new VPReductionPHIRecipe(Phi, RdxDesc, *StartV,
-                                           CM.isInLoopReduction(Phi),
-                                           CM.useOrderedReductions(RdxDesc));
+
+      // If the PHI is used by a partial reduction, set the scale factor
+      unsigned ScaleFactor = getScaleFactorForReductionPhi(Phi, CM);
+      PhiRecipe = new VPReductionPHIRecipe(
+          Phi, RdxDesc, *StartV, CM.isInLoopReduction(Phi),
+          CM.useOrderedReductions(RdxDesc), ScaleFactor);
     } else {
       // TODO: Currently fixed-order recurrences are modeled as chains of
       // first-order recurrences. If there are no users of the intermediate
@@ -8835,6 +9057,24 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
   }
 
   return tryToWiden(Instr, Operands, VPBB);
+}
+
+VPRecipeBase *
+VPRecipeBuilder::tryToCreatePartialReduction(Instruction *Reduction,
+                                             unsigned ScaleFactor,
+                                             ArrayRef<VPValue *> Operands) {
+  assert(Operands.size() == 2 &&
+         "Unexpected number of operands for partial reduction");
+
+  VPValue *BinOp = Operands[0];
+  VPValue *Phi = Operands[1];
+  VPRecipeBase *BinOpRecipe = BinOp->getDefiningRecipe();
+  if (isa<VPReductionPHIRecipe>(BinOpRecipe))
+    std::swap(BinOp, Phi);
+
+  SmallVector<VPValue *, 2> OrderedOperands = {BinOp, Phi};
+  return new VPPartialReductionRecipe(
+      *Reduction, make_range(OrderedOperands.begin(), OrderedOperands.end()));
 }
 
 void LoopVectorizationPlanner::buildVPlansWithVPRecipes(ElementCount MinVF,
@@ -9231,8 +9471,14 @@ LoopVectorizationPlanner::tryToBuildVPlanWithVPRecipes(VFRange &Range) {
         continue;
       }
 
-      VPRecipeBase *Recipe =
-          RecipeBuilder.tryToCreateWidenRecipe(Instr, Operands, Range, VPBB);
+      VPRecipeBase *Recipe = nullptr;
+
+      if (auto Chain = CM.getInstructionsPartialReduction(Instr))
+        Recipe = RecipeBuilder.tryToCreatePartialReduction(
+            Chain->Reduction, Chain->ScaleFactor, Operands);
+      else if (!Recipe)
+        Recipe =
+            RecipeBuilder.tryToCreateWidenRecipe(Instr, Operands, Range, VPBB);
       if (!Recipe)
         Recipe = RecipeBuilder.handleReplication(Instr, Range);
 
