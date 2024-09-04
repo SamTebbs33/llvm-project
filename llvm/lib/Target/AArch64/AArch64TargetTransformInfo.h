@@ -341,6 +341,15 @@ public:
     return BaseT::isLegalNTLoad(DataType, Alignment);
   }
 
+  bool isPartialReductionSupported(const Instruction *ReductionInstr,
+                                   Type *InputType, unsigned ScaleFactor,
+                                   bool IsInputASignExtended,
+                                   bool IsInputBSignExtended,
+                                   const Instruction *BinOp) const {
+    return ScaleFactor == 4 && (ST->isSVEorStreamingSVEAvailable() ||
+                                (ST->isNeonAvailable() && ST->hasDotProd()));
+  }
+
   bool enableOrderedReductions() const { return true; }
 
   InstructionCost getInterleavedMemoryOpCost(
