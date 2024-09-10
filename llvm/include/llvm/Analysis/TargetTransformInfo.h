@@ -24,6 +24,7 @@
 #include "llvm/ADT/APInt.h"
 #include "llvm/IR/FMF.h"
 #include "llvm/IR/InstrTypes.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/AtomicOrdering.h"
@@ -90,6 +91,8 @@ struct MemIntrinsicInfo {
            !IsVolatile;
   }
 };
+
+enum PartialReductionExtendKind { PR_None, PR_SignExtend, PR_ZeroExtend };
 
 /// Attributes of a target dependent hardware loop.
 struct HardwareLoopInfo {
@@ -210,6 +213,15 @@ typedef TargetTransformInfo TTI;
 /// for IR-level transformations.
 class TargetTransformInfo {
 public:
+  static PartialReductionExtendKind
+  getPartialReductionExtendKind(Instruction *I) {
+    if (isa<SExtInst>(I))
+      return PR_SignExtend;
+    if (isa<ZExtInst>(I))
+      return PR_ZeroExtend;
+    return PR_None;
+  }
+
   /// Construct a TTI object using a type implementing the \c Concept
   /// API below.
   ///
