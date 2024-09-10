@@ -541,12 +541,12 @@ public:
   bool enableWritePrefetching() const { return false; }
   bool shouldPrefetchAddressSpace(unsigned AS) const { return !AS; }
 
-  bool isPartialReductionSupported(const Instruction *ReductionInstr,
-                                   Type *InputType, unsigned ScaleFactor,
-                                   bool IsInputASignExtended,
-                                   bool IsInputBSignExtended,
-                                   const Instruction *BinOp = nullptr) const {
-    return false;
+  InstructionCost
+  getPartialReductionCost(unsigned Opcode, Type *InputType, Type *AccumType,
+                          ElementCount VF, PartialReductionExtendKind OpAExtend,
+                          PartialReductionExtendKind OpBExtend,
+                          std::optional<unsigned> BinOp = std::nullopt) const {
+    return InstructionCost::getInvalid();
   }
 
   unsigned getMaxInterleaveFactor(ElementCount VF) const { return 1; }

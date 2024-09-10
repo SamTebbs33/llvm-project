@@ -341,13 +341,41 @@ public:
     return BaseT::isLegalNTLoad(DataType, Alignment);
   }
 
-  bool isPartialReductionSupported(const Instruction *ReductionInstr,
-                                   Type *InputType, unsigned ScaleFactor,
-                                   bool IsInputASignExtended,
-                                   bool IsInputBSignExtended,
-                                   const Instruction *BinOp) const {
-    return ScaleFactor == 4 && (ST->isSVEorStreamingSVEAvailable() ||
-                                (ST->isNeonAvailable() && ST->hasDotProd()));
+  InstructionCost getPartialReductionCost(unsigned Opcode, Type *InputType,
+                                          Type *AccumType, ElementCount VF,
+                                          PartialReductionExtendKind OpAExtend,
+                                          PartialReductionExtendKind OpBExtend,
+                                          std::optional<unsigned> BinOp) const {
+    InstructionCost Cost = InstructionCost::getInvalid();
+
+    if (Opcode != Instruction::Add)
+      return Cost;
+
+    EVT InputEVT = EVT::getEVT(InputType);
+    EVT AccumEVT = EVT::getEVT(AccumType);
+
+    if (AccumEVT.isScalableVector() && !ST->isSVEorStreamingSVEAvailable())
+      return Cost;
+    if (!AccumEVT.isScalableVector() && !ST->isNeonAvailable() &&
+        !ST->hasDotProd())
+      return Cost;
+
+    if (InputEVT == MVT::i8) {
+      if (AccumEVT != MVT::i32)
+        return Cost;
+    } else if (InputEVT == MVT::i16) {
+      if (AccumEVT != MVT::i64)
+        return Cost;
+    } else
+      return Cost;
+
+    if (OpAExtend == PR_None || OpBExtend == PR_None)
+      return Cost;
+
+    if (!BinOp || (*BinOp) != Instruction::Mul)
+      return Cost;
+
+    return InstructionCost::getMin();
   }
 
   bool enableOrderedReductions() const { return true; }

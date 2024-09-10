@@ -1258,11 +1258,11 @@ public:
   /// \return if target want to issue a prefetch in address space \p AS.
   bool shouldPrefetchAddressSpace(unsigned AS) const;
 
-  bool isPartialReductionSupported(const Instruction *ReductionInstr,
-                                   Type *InputType, unsigned ScaleFactor,
-                                   bool IsInputASignExtended,
-                                   bool IsInputBSignExtended,
-                                   const Instruction *BinOp = nullptr) const;
+  InstructionCost
+  getPartialReductionCost(unsigned Opcode, Type *InputType, Type *AccumType,
+                          ElementCount VF, PartialReductionExtendKind OpAExtend,
+                          PartialReductionExtendKind OpBExtend,
+                          std::optional<unsigned> BinOp = std::nullopt) const;
 
   /// \return The maximum interleave factor that any transform should try to
   /// perform for this target. This number depends on the level of parallelism
@@ -2040,10 +2040,11 @@ public:
   /// \return if target want to issue a prefetch in address space \p AS.
   virtual bool shouldPrefetchAddressSpace(unsigned AS) const = 0;
 
-  virtual bool isPartialReductionSupported(
-      const Instruction *ReductionInstr, Type *InputType, unsigned ScaleFactor,
-      bool IsInputASignExtended, bool IsInputBSignExtended,
-      const Instruction *BinOp = nullptr) const = 0;
+  virtual InstructionCost
+  getPartialReductionCost(unsigned Opcode, Type *InputType, Type *AccumType,
+                          ElementCount VF, PartialReductionExtendKind OpAExtend,
+                          PartialReductionExtendKind OpBExtend,
+                          std::optional<unsigned> BinOp) const = 0;
 
   virtual unsigned getMaxInterleaveFactor(ElementCount VF) = 0;
   virtual InstructionCost getArithmeticInstrCost(
@@ -2677,13 +2678,13 @@ public:
     return Impl.shouldPrefetchAddressSpace(AS);
   }
 
-  bool isPartialReductionSupported(
-      const Instruction *ReductionInstr, Type *InputType, unsigned ScaleFactor,
-      bool IsInputASignExtended, bool IsInputBSignExtended,
-      const Instruction *BinOp = nullptr) const override {
-    return Impl.isPartialReductionSupported(ReductionInstr, InputType,
-                                            ScaleFactor, IsInputASignExtended,
-                                            IsInputBSignExtended, BinOp);
+  InstructionCost getPartialReductionCost(
+      unsigned Opcode, Type *InputType, Type *AccumType, ElementCount VF,
+      PartialReductionExtendKind OpAExtend,
+      PartialReductionExtendKind OpBExtend,
+      std::optional<unsigned> BinOp = std::nullopt) const override {
+    return Impl.getPartialReductionCost(Opcode, InputType, AccumType, VF,
+                                        OpAExtend, OpBExtend, BinOp);
   }
 
   unsigned getMaxInterleaveFactor(ElementCount VF) override {

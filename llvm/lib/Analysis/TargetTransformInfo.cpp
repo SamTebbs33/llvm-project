@@ -825,13 +825,12 @@ bool TargetTransformInfo::shouldPrefetchAddressSpace(unsigned AS) const {
   return TTIImpl->shouldPrefetchAddressSpace(AS);
 }
 
-bool TargetTransformInfo::isPartialReductionSupported(
-    const Instruction *ReductionInstr, Type *InputType, unsigned ScaleFactor,
-    bool IsInputASignExtended, bool IsInputBSignExtended,
-    const Instruction *BinOp) const {
-  return TTIImpl->isPartialReductionSupported(ReductionInstr, InputType,
-                                              ScaleFactor, IsInputASignExtended,
-                                              IsInputBSignExtended, BinOp);
+InstructionCost TargetTransformInfo::getPartialReductionCost(
+    unsigned Opcode, Type *InputType, Type *AccumType, ElementCount VF,
+    PartialReductionExtendKind OpAExtend, PartialReductionExtendKind OpBExtend,
+    std::optional<unsigned> BinOp) const {
+  return TTIImpl->getPartialReductionCost(Opcode, InputType, AccumType, VF,
+                                          OpAExtend, OpBExtend, BinOp);
 }
 
 unsigned TargetTransformInfo::getMaxInterleaveFactor(ElementCount VF) const {
