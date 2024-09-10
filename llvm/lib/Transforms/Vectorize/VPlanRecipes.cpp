@@ -362,10 +362,6 @@ void VPPartialReductionRecipe::execute(VPTransformState &State) {
   }
 }
 
-void VPPartialReductionRecipe::postInsertionOp() {
-  cast<VPReductionPHIRecipe>(this->getOperand(1))->SetVFScaleFactor(Scale);
-}
-
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
 void VPPartialReductionRecipe::print(raw_ostream &O, const Twine &Indent,
                                      VPSlotTracker &SlotTracker) const {

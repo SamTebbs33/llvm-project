@@ -31,7 +31,7 @@ define void @print_partial_reduction(ptr %a, ptr %b) {
 ; CHECK-NEXT:   WIDEN ir<%2> = load vp<%5>
 ; CHECK-NEXT:   WIDEN-CAST ir<%conv3> = zext ir<%2> to i32
 ; CHECK-NEXT:   WIDEN ir<%mul> = mul ir<%conv3>, ir<%conv>
-; CHECK-NEXT:   WIDEN ir<%add> = add ir<%mul>, ir<[[ACC]]>
+; CHECK-NEXT:   PARTIAL-REDUCE ir<%add> = add ir<%mul>, ir<%acc.010>
 ; CHECK-NEXT:   EMIT vp<[[CAN_IV_NEXT]]> = add nuw vp<[[CAN_IV]]>, vp<[[VFxUF]]>
 ; CHECK-NEXT:   EMIT branch-on-count vp<[[CAN_IV_NEXT]]>, vp<[[VEC_TC]]>
 ; CHECK-NEXT: No successors

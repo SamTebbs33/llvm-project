@@ -829,10 +829,6 @@ public:
   /// \returns an iterator pointing to the element after the erased one
   iplist<VPRecipeBase>::iterator eraseFromParent();
 
-  /// Run any required modifications to the recipe after it has been inserted
-  /// into the plan.
-  virtual void postInsertionOp() {}
-
   /// Method to support type inquiry through isa, cast, and dyn_cast.
   static inline bool classof(const VPDef *D) {
     // All VPDefs are also VPRecipeBases.
@@ -2032,8 +2028,6 @@ public:
     return R->getVPDefID() == VPDef::VPReductionPHISC;
   }
 
-  void SetVFScaleFactor(unsigned ScaleFactor) { VFScaleFactor = ScaleFactor; }
-
   /// Generate the phi/select nodes.
   void execute(VPTransformState &State) override;
 
@@ -2077,7 +2071,6 @@ public:
   VP_CLASSOF_IMPL(VPDef::VPPartialReductionSC)
   /// Generate the reduction in the loop
   void execute(VPTransformState &State) override;
-  void postInsertionOp() override;
   unsigned getOpcode() { return Opcode; }
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   /// Print the recipe.

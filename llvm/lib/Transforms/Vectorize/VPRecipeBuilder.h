@@ -117,7 +117,7 @@ public:
                                        ArrayRef<VPValue *> Operands,
                                        VFRange &Range, VPBasicBlock *VPBB);
 
-  VPRecipeBase *tryToCreatePartialReduction(VFRange &Range,
+  VPRecipeBase *tryToCreatePartialReduction(
                                             PartialReductionChain &Chain,
                                             ArrayRef<VPValue *> Operands);
 
