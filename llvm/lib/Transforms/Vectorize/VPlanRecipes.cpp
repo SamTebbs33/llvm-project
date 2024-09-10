@@ -312,53 +312,35 @@ void VPPartialReductionRecipe::execute(VPTransformState &State) {
   State.setDebugLocFrom(getDebugLoc());
   auto &Builder = State.Builder;
 
-  switch (Opcode) {
-  case Instruction::Add: {
+  assert(Opcode == Instruction::Add && "Unhandled partial reduction opcode");
 
-    for (unsigned Part = 0; Part < State.UF; ++Part) {
-      Value *Mul = nullptr;
-      Value *Phi = nullptr;
-      SmallVector<Value *, 2> Ops;
-      for (VPValue *VPOp : operands()) {
-        auto *Op = State.get(VPOp, Part);
-        Ops.push_back(Op);
-        if (isa<PHINode>(Op))
-          Phi = Op;
-        else
-          Mul = Op;
-      }
-
-      assert(Phi && Mul && "Phi and Mul must be set");
-
-      VectorType *FullTy = cast<VectorType>(Ops[0]->getType());
-      auto EC = FullTy->getElementCount();
-      Type *RetTy = VectorType::get(FullTy->getScalarType(),
-                                    EC.divideCoefficientBy(Scale));
-
-      Intrinsic::ID PartialIntrinsic = Intrinsic::not_intrinsic;
-      switch (Opcode) {
-      case Instruction::Add:
-        PartialIntrinsic = Intrinsic::experimental_vector_partial_reduce_add;
-        break;
-      default:
-        llvm_unreachable("Opcode not handled");
-      }
-
-      assert(PartialIntrinsic != Intrinsic::not_intrinsic);
-
-      CallInst *V = Builder.CreateIntrinsic(RetTy, PartialIntrinsic, {Phi, Mul},
-                                            nullptr, Twine("partial.reduce"));
-
-      // Use this vector value for all users of the original instruction.
-      State.set(this, V, Part);
-      State.addMetadata(V, dyn_cast_or_null<Instruction>(getUnderlyingValue()));
+  for (unsigned Part = 0; Part < State.UF; ++Part) {
+    Value *Mul = nullptr;
+    Value *Phi = nullptr;
+    SmallVector<Value *, 2> Ops;
+    for (VPValue *VPOp : operands()) {
+      auto *Op = State.get(VPOp, Part);
+      Ops.push_back(Op);
+      if (isa<PHINode>(Op))
+        Phi = Op;
+      else
+        Mul = Op;
     }
-    break;
-  }
-  default:
-    LLVM_DEBUG(dbgs() << "LV: Found an unhandled opcode : "
-                      << Instruction::getOpcodeName(Opcode));
-    llvm_unreachable("Unhandled instruction!");
+
+    assert(Phi && Mul && "Phi and Mul must be set");
+
+    VectorType *FullTy = cast<VectorType>(Ops[0]->getType());
+    ElementCount EC = FullTy->getElementCount();
+    Type *RetTy =
+        VectorType::get(FullTy->getScalarType(), EC.divideCoefficientBy(Scale));
+
+    CallInst *V = Builder.CreateIntrinsic(
+        RetTy, Intrinsic::experimental_vector_partial_reduce_add, {Phi, Mul},
+        nullptr, Twine("partial.reduce"));
+
+    // Use this vector value for all users of the original instruction.
+    State.set(this, V, Part);
+    State.addMetadata(V, dyn_cast_or_null<Instruction>(getUnderlyingValue()));
   }
 }
 

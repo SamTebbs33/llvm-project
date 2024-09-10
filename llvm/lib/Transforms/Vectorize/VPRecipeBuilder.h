@@ -117,8 +117,7 @@ public:
                                        ArrayRef<VPValue *> Operands,
                                        VFRange &Range, VPBasicBlock *VPBB);
 
-  VPRecipeBase *tryToCreatePartialReduction(
-                                            PartialReductionChain &Chain,
+  VPRecipeBase *tryToCreatePartialReduction(PartialReductionChain &Chain,
                                             ArrayRef<VPValue *> Operands);
 
   /// Set the recipe created for given ingredient.
