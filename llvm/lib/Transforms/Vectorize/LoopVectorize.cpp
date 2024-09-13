@@ -1570,9 +1570,6 @@ public:
     Instruction *ExtendA;
     Instruction *ExtendB;
 
-    /// The inner binary operation's operands
-    Value *InputA;
-    Value *InputB;
     /// The accumulator that is reduced to a scalar after the loop body
     Value *Accumulator;
 
@@ -1649,7 +1646,6 @@ public:
 
     Instruction *BinOp = cast<Instruction>(Instr->getOperand(0));
     Value *InputA = Ext0->getOperand(0);
-    Value *InputB = Ext1->getOperand(0);
     TTI::PartialReductionExtendKind OpAExtend =
         TargetTransformInfo::getPartialReductionExtendKind(Ext0);
     TTI::PartialReductionExtendKind OpBExtend =
@@ -1666,11 +1662,9 @@ public:
     Chain.BinOp = BinOp;
     Chain.ExtendA = Ext0;
     Chain.ExtendB = Ext1;
-    Chain.InputA = InputA;
-    Chain.InputB = InputB;
     Chain.Accumulator = ExpectedPhi;
 
-    unsigned InputSizeBits = Chain.InputA->getType()->getScalarSizeInBits();
+    unsigned InputSizeBits = InputA->getType()->getScalarSizeInBits();
     unsigned ResultSizeBits = Chain.Reduction->getType()->getScalarSizeInBits();
     Chain.ScaleFactor = ResultSizeBits / InputSizeBits;
 
