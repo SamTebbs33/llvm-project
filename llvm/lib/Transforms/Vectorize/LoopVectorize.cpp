@@ -1584,13 +1584,12 @@ public:
     return PartialReductionChains;
   }
 
-  bool getInstructionsPartialReduction(Instruction *I,
-                                       PartialReductionChain &Chain) const {
+  std::optional<PartialReductionChain> getInstructionsPartialReduction(Instruction *I
+ ) const {
     auto PairIt = PartialReductionChains.find(I);
     if (PairIt == PartialReductionChains.end())
-      return false;
-    Chain = PairIt->second;
-    return true;
+      return std::nullopt;
+    return PairIt->second;
   }
 
   void addPartialReductionIfSupported(Instruction *Instr, ElementCount VF) {
@@ -8652,9 +8651,8 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
       unsigned ScaleFactor = 1;
       for (auto *User : Phi->users()) {
         if (auto *I = dyn_cast<Instruction>(User)) {
-          LoopVectorizationCostModel::PartialReductionChain Chain;
-          if (CM.getInstructionsPartialReduction(I, Chain)) {
-            ScaleFactor = Chain.ScaleFactor;
+          if (auto Chain = CM.getInstructionsPartialReduction(I)) {
+            ScaleFactor = Chain->ScaleFactor;
             break;
           }
         }
@@ -9124,10 +9122,9 @@ LoopVectorizationPlanner::tryToBuildVPlanWithVPRecipes(VFRange &Range) {
 
       VPRecipeBase *Recipe = nullptr;
 
-      LoopVectorizationCostModel::PartialReductionChain Chain;
-      if (CM.getInstructionsPartialReduction(Instr, Chain))
+      if (auto Chain = CM.getInstructionsPartialReduction(Instr))
         Recipe = RecipeBuilder.tryToCreatePartialReduction(
-            Chain.Reduction, Chain.ScaleFactor, Operands);
+            Chain->Reduction, Chain->ScaleFactor, Operands);
 
       if (!Recipe)
         Recipe =
