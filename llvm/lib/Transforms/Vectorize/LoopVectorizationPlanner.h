@@ -293,31 +293,6 @@ struct FixedScalableVFPair {
   bool hasVector() const { return FixedVF.isVector() || ScalableVF.isVector(); }
 };
 
-/// A chain of instructions that form a partial reduction.
-/// Designed to match: reduction_bin_op (bin_op (extend (A), (extend (B))),
-/// accumulator)
-struct PartialReductionChain {
-  /// The top-level binary operation that forms the reduction to a scalar after
-  /// the loop body
-  Instruction *Reduction;
-  /// The inner binary operation that forms the reduction to a vector value
-  /// within the loop body
-  Instruction *BinOp;
-  /// The extension of each of the inner binary operation's operands
-  Instruction *ExtendA;
-  Instruction *ExtendB;
-
-  /// The inner binary operation's operands
-  Value *InputA;
-  Value *InputB;
-  /// The accumulator that is reduced to a scalar after the loop body
-  Value *Accumulator;
-
-  /// The scaling factor between the size of the reduction type and the
-  /// (possibly extended) inputs
-  unsigned ScaleFactor;
-};
-
 /// Planner drives the vectorization process after having passed
 /// Legality checks.
 class LoopVectorizationPlanner {

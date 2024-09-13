@@ -1556,6 +1556,31 @@ public:
   getReductionPatternCost(Instruction *I, ElementCount VF, Type *VectorTy,
                           TTI::TargetCostKind CostKind) const;
 
+  /// A chain of instructions that form a partial reduction.
+  /// Designed to match: reduction_bin_op (bin_op (extend (A), (extend (B))),
+  /// accumulator)
+  struct PartialReductionChain {
+    /// The top-level binary operation that forms the reduction to a scalar
+    /// after the loop body
+    Instruction *Reduction;
+    /// The inner binary operation that forms the reduction to a vector value
+    /// within the loop body
+    Instruction *BinOp;
+    /// The extension of each of the inner binary operation's operands
+    Instruction *ExtendA;
+    Instruction *ExtendB;
+
+    /// The inner binary operation's operands
+    Value *InputA;
+    Value *InputB;
+    /// The accumulator that is reduced to a scalar after the loop body
+    Value *Accumulator;
+
+    /// The scaling factor between the size of the reduction type and the
+    /// (possibly extended) inputs
+    unsigned ScaleFactor;
+  };
+
   using PartialReductionList = DenseMap<Instruction *, PartialReductionChain>;
 
   PartialReductionList getPartialReductionChains() {
@@ -8633,7 +8658,7 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
       unsigned ScaleFactor = 1;
       for (auto *User : Phi->users()) {
         if (auto *I = dyn_cast<Instruction>(User)) {
-          PartialReductionChain Chain;
+          LoopVectorizationCostModel::PartialReductionChain Chain;
           if (CM.getInstructionsPartialReduction(I, Chain)) {
             ScaleFactor = Chain.ScaleFactor;
             break;
@@ -8691,11 +8716,11 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
 }
 
 VPRecipeBase *
-VPRecipeBuilder::tryToCreatePartialReduction(PartialReductionChain &Chain,
+VPRecipeBuilder::tryToCreatePartialReduction(Instruction *Reduction,
+                                             unsigned ScaleFactor,
                                              ArrayRef<VPValue *> Operands) {
   return new VPPartialReductionRecipe(
-      *Chain.Reduction, make_range(Operands.begin(), Operands.end()),
-      Chain.ScaleFactor);
+      *Reduction, make_range(Operands.begin(), Operands.end()), ScaleFactor);
 }
 
 void LoopVectorizationPlanner::buildVPlansWithVPRecipes(ElementCount MinVF,
@@ -9105,9 +9130,10 @@ LoopVectorizationPlanner::tryToBuildVPlanWithVPRecipes(VFRange &Range) {
 
       VPRecipeBase *Recipe = nullptr;
 
-      PartialReductionChain Chain;
+      LoopVectorizationCostModel::PartialReductionChain Chain;
       if (CM.getInstructionsPartialReduction(Instr, Chain))
-        Recipe = RecipeBuilder.tryToCreatePartialReduction(Chain, Operands);
+        Recipe = RecipeBuilder.tryToCreatePartialReduction(
+            Chain.Reduction, Chain.ScaleFactor, Operands);
 
       if (!Recipe)
         Recipe =
