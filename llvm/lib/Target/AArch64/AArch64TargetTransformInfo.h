@@ -343,8 +343,8 @@ public:
 
   InstructionCost getPartialReductionCost(unsigned Opcode, Type *InputType,
                                           Type *AccumType, ElementCount VF,
-                                          PartialReductionExtendKind OpAExtend,
-                                          PartialReductionExtendKind OpBExtend,
+                                          TTI::PartialReductionExtendKind OpAExtend,
+                                          TTI::PartialReductionExtendKind OpBExtend,
                                           std::optional<unsigned> BinOp) const {
     InstructionCost Cost = InstructionCost::getInvalid();
 
@@ -369,7 +369,7 @@ public:
     } else
       return Cost;
 
-    if (OpAExtend == PR_None || OpBExtend == PR_None)
+    if (OpAExtend == TTI::PR_None || OpBExtend == TTI::PR_None)
       return Cost;
 
     if (!BinOp || (*BinOp) != Instruction::Mul)

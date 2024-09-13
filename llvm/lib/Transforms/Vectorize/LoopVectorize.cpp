@@ -1625,9 +1625,9 @@ public:
     Instruction *BinOp = cast<Instruction>(Instr->getOperand(0));
     Value *InputA = Ext0->getOperand(0);
     Value *InputB = Ext1->getOperand(0);
-    PartialReductionExtendKind OpAExtend =
+    TTI::PartialReductionExtendKind OpAExtend =
         TargetTransformInfo::getPartialReductionExtendKind(Ext0);
-    PartialReductionExtendKind OpBExtend =
+    TTI::PartialReductionExtendKind OpBExtend =
         TargetTransformInfo::getPartialReductionExtendKind(Ext1);
     InstructionCost Cost = TTI.getPartialReductionCost(
         Instr->getOpcode(), InputA->getType(), ExpectedPhi->getType(), VF,

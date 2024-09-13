@@ -92,8 +92,6 @@ struct MemIntrinsicInfo {
   }
 };
 
-enum PartialReductionExtendKind { PR_None, PR_SignExtend, PR_ZeroExtend };
-
 /// Attributes of a target dependent hardware loop.
 struct HardwareLoopInfo {
   HardwareLoopInfo() = delete;
@@ -213,6 +211,8 @@ typedef TargetTransformInfo TTI;
 /// for IR-level transformations.
 class TargetTransformInfo {
 public:
+  enum PartialReductionExtendKind { PR_None, PR_SignExtend, PR_ZeroExtend };
+
   static PartialReductionExtendKind
   getPartialReductionExtendKind(Instruction *I) {
     if (isa<SExtInst>(I))
