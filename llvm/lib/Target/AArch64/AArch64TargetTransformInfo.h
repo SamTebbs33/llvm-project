@@ -346,34 +346,34 @@ public:
                                           TTI::PartialReductionExtendKind OpAExtend,
                                           TTI::PartialReductionExtendKind OpBExtend,
                                           std::optional<unsigned> BinOp) const {
-    InstructionCost Cost = InstructionCost::getInvalid();
+    InstructionCost Invalid = InstructionCost::getInvalid();
 
     if (Opcode != Instruction::Add)
-      return Cost;
+      return Invalid;
 
     EVT InputEVT = EVT::getEVT(InputType);
     EVT AccumEVT = EVT::getEVT(AccumType);
 
     if (AccumEVT.isScalableVector() && !ST->isSVEorStreamingSVEAvailable())
-      return Cost;
+      return Invalid;
     if (!AccumEVT.isScalableVector() && !ST->isNeonAvailable() &&
         !ST->hasDotProd())
-      return Cost;
+      return Invalid;
 
     if (InputEVT == MVT::i8) {
       if (AccumEVT != MVT::i32)
-        return Cost;
+        return Invalid;
     } else if (InputEVT == MVT::i16) {
       if (AccumEVT != MVT::i64)
-        return Cost;
+        return Invalid;
     } else
-      return Cost;
+      return Invalid;
 
     if (OpAExtend == TTI::PR_None || OpBExtend == TTI::PR_None)
-      return Cost;
+      return Invalid;
 
     if (!BinOp || (*BinOp) != Instruction::Mul)
-      return Cost;
+      return Invalid;
 
     return InstructionCost::getMin();
   }
