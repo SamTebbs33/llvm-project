@@ -3462,6 +3462,8 @@ void VPReductionPHIRecipe::print(raw_ostream &O, const Twine &Indent,
   printAsOperand(O, SlotTracker);
   O << " = phi ";
   printOperands(O, SlotTracker);
+  if (VFScaleFactor != 1)
+    O << " (VF scaled by 1/" << VFScaleFactor << ")";
 }
 #endif
 

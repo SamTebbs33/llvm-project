@@ -3851,6 +3851,10 @@ class VPlan {
   /// been modeled in VPlan directly.
   DenseMap<const SCEV *, VPValue *> SCEVToExpansion;
 
+  /// Stores the set of reduction exit instructions that will be scaled to
+  /// a smaller VF in this plan via partial reductions.
+  SmallPtrSet<const Instruction *, 2> ScaledReductionExitInstrs;
+
 public:
   /// Construct a VPlan with original preheader \p Preheader, trip count \p TC,
   /// \p Entry to the plan and with \p ScalarHeader wrapping the original header
@@ -4076,6 +4080,14 @@ public:
   /// Clone the current VPlan, update all VPValues of the new VPlan and cloned
   /// recipes to refer to the clones, and return it.
   VPlan *duplicate();
+
+  void addScaledReductionExitInstr(const Instruction *ExitInst) {
+    ScaledReductionExitInstrs.insert(ExitInst);
+  }
+
+  bool isScaledReductionExitInstr(const Instruction *ExitInst) {
+    return ScaledReductionExitInstrs.contains(ExitInst);
+  }
 };
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
