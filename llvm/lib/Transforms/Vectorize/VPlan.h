@@ -2449,7 +2449,6 @@ public:
   VP_CLASSOF_IMPL(VPDef::VPPartialReductionSC)
   /// Generate the reduction in the loop
   void execute(VPTransformState &State) override;
-  unsigned getOpcode() { return Opcode; }
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   /// Print the recipe.
   void print(raw_ostream &O, const Twine &Indent,
@@ -3790,6 +3789,24 @@ public:
   VPRegionBlock *clone() override;
 };
 
+/// A chain of instructions that form a partial reduction.
+/// Designed to match: reduction_bin_op (bin_op (extend (A), (extend (B))),
+/// accumulator)
+struct PartialReductionChain {
+  /// The top-level binary operation that forms the reduction to a scalar
+  /// after the loop body
+  Instruction *Reduction;
+  /// The extension of each of the inner binary operation's operands
+  Instruction *ExtendA;
+  Instruction *ExtendB;
+
+  Instruction *BinOp;
+
+  /// The scaling factor between the size of the reduction type and the
+  /// (possibly extended) inputs
+  unsigned ScaleFactor;
+};
+
 /// VPlan models a candidate for vectorization, encoding various decisions take
 /// to produce efficient output IR, including which branches, basic-blocks and
 /// output IR instructions to generate, and their cost. VPlan holds a
@@ -3853,7 +3870,8 @@ class VPlan {
 
   /// Stores the set of reduction exit instructions that will be scaled to
   /// a smaller VF in this plan via partial reductions.
-  SmallPtrSet<const Instruction *, 2> ScaledReductionExitInstrs;
+  DenseMap<const Instruction *, PartialReductionChain>
+      ScaledReductionExitInstrs;
 
 public:
   /// Construct a VPlan with original preheader \p Preheader, trip count \p TC,
@@ -4081,12 +4099,52 @@ public:
   /// recipes to refer to the clones, and return it.
   VPlan *duplicate();
 
-  void addScaledReductionExitInstr(const Instruction *ExitInst) {
-    ScaledReductionExitInstrs.insert(ExitInst);
+  void addScaledReductionExitInstr(PartialReductionChain Chain) {
+    ScaledReductionExitInstrs.insert(std::make_pair(Chain.Reduction, Chain));
   }
 
-  bool isScaledReductionExitInstr(const Instruction *ExitInst) {
-    return ScaledReductionExitInstrs.contains(ExitInst);
+  std::optional<PartialReductionChain>
+  getScaledReductionForInstr(const Instruction *ExitInst) {
+    auto It = ScaledReductionExitInstrs.find(ExitInst);
+    return It == ScaledReductionExitInstrs.end()
+               ? std::nullopt
+               : std::make_optional(It->second);
+  }
+
+  void removeInvalidScaledReductionExitInstrs() {
+    // A partial reduction is invalid if any of its extends are used by
+    // something that isn't another partial reduction. This is because the
+    // extends are intended to be lowered along with the reduction itself.
+
+    // Build up a set of partial reduction bin ops for efficient use checking
+    SmallSet<Instruction *, 4> PartialReductionBinOps;
+    for (auto It : ScaledReductionExitInstrs) {
+      if (It.second.BinOp)
+        PartialReductionBinOps.insert(It.second.BinOp);
+    }
+
+    auto ExtendIsOnlyUsedByPartialReductions =
+        [PartialReductionBinOps](Instruction *Extend) {
+          for (auto *Use : Extend->users()) {
+            Instruction *UseInstr = dyn_cast<Instruction>(Use);
+            if (!PartialReductionBinOps.contains(UseInstr))
+              return false;
+          }
+          return true;
+        };
+
+    // Check if each use of a chain's two extends is a partial reduction
+    // and remove those that have non-partial reduction users
+    SmallSet<Instruction *, 4> PartialReductionsToRemove;
+    for (auto It : ScaledReductionExitInstrs) {
+      PartialReductionChain Chain = It.second;
+      if (!ExtendIsOnlyUsedByPartialReductions(Chain.ExtendA) ||
+          !ExtendIsOnlyUsedByPartialReductions(Chain.ExtendB))
+        PartialReductionsToRemove.insert(Chain.Reduction);
+    }
+
+    for (auto *Instr : PartialReductionsToRemove)
+      ScaledReductionExitInstrs.erase(Instr);
   }
 };
 

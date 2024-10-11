@@ -1605,8 +1605,6 @@ public:
   }
 
 private:
-  PartialReductionList PartialReductionChains;
-
   unsigned NumPredStores = 0;
 
   /// \return An upper bound for the vectorization factors for both
@@ -4778,11 +4776,6 @@ bool LoopVectorizationPlanner::isCandidateForEpilogueVectorization(
         return false;
   }
 
-  // Prevent epilogue vectorization if a partial reduction is involved
-  // TODO Is there a cleaner way to check this?
-  if (CM.getPartialReductionChains().size() > 0)
-    return false;
-
   // Epilogue vectorization code has not been auditted to ensure it handles
   // non-latch exits properly.  It may be fine, but it needs auditted and
   // tested.
@@ -7248,7 +7241,6 @@ LoopVectorizationPlanner::planInVPlanNativePath(ElementCount UserVF) {
 
 void LoopVectorizationPlanner::plan(ElementCount UserVF, unsigned UserIC) {
   assert(OrigLoop->isInnermost() && "Inner loop expected.");
-
   CM.collectValuesToIgnore();
   CM.collectElementTypesForWidening();
 
@@ -8805,26 +8797,24 @@ VPReplicateRecipe *VPRecipeBuilder::handleReplication(Instruction *I,
 
 /// Examines reduction operations to see if the target can use a cheaper
 /// operation with a wider per-iteration input VF and narrower PHI VF.
-/// Returns the ratio between the two VFs (1 by default).
-static unsigned getReductionScaleFactor(PHINode *PHI,
-                                        const RecurrenceDescriptor &Rdx,
-                                        const TargetTransformInfo *TTI,
-                                        VFRange &Range,
-                                        LoopVectorizationCostModel &CM) {
+/// Returns a struct containing the ratio between the two VFs and other cached
+/// information, or null if no scalable reduction was found.
+static std::optional<PartialReductionChain>
+getScaledReduction(PHINode *PHI, const RecurrenceDescriptor &Rdx,
+                   const TargetTransformInfo *TTI, VFRange &Range,
+                   LoopVectorizationCostModel &CM) {
   // FIXME: Should we move this to VPRecipeBuilder and cache the values needed
   //        for the TTI query?
-  unsigned DefaultScaleFactor = 1;
-
   // TODO: Allow scaling reductions when predicating. The select at
   // the end of the loop chooses between the phi value and most recent
   // reduction result, both of which have different VFs to the active lane
   // mask when scaling.
   if (CM.blockNeedsPredicationForAnyReason(Rdx.getLoopExitInstr()->getParent()))
-    return DefaultScaleFactor;
+    return std::nullopt;
 
   auto *Update = dyn_cast<BinaryOperator>(Rdx.getLoopExitInstr());
   if (!Update)
-    return DefaultScaleFactor;
+    return std::nullopt;
 
   Value *Op = Update->getOperand(0);
   if (Op == PHI)
@@ -8833,7 +8823,7 @@ static unsigned getReductionScaleFactor(PHINode *PHI,
   // Match dot product pattern
   auto *BinOp = dyn_cast<BinaryOperator>(Op);
   if (!BinOp || !BinOp->hasOneUse())
-    return DefaultScaleFactor;
+    return std::nullopt;
 
   auto IsSextOrZext = [](Instruction *I) {
     return I && (I->getOpcode() == Instruction::ZExt ||
@@ -8843,13 +8833,13 @@ static unsigned getReductionScaleFactor(PHINode *PHI,
   auto *ExtA = dyn_cast<Instruction>(BinOp->getOperand(0));
   auto *ExtB = dyn_cast<Instruction>(BinOp->getOperand(1));
   if (!IsSextOrZext(ExtA) || !IsSextOrZext(ExtB))
-    return DefaultScaleFactor;
+    return std::nullopt;
 
   Value *A = ExtA->getOperand(0);
   Value *B = ExtB->getOperand(0);
   // Check that the extends extend from the same type
   if (A->getType() != B->getType())
-    return DefaultScaleFactor;
+    return std::nullopt;
 
   unsigned TargetScaleFactor =
       PHI->getType()->getPrimitiveSizeInBits().getKnownScalarFactor(
@@ -8860,6 +8850,13 @@ static unsigned getReductionScaleFactor(PHINode *PHI,
   TTI::PartialReductionExtendKind OpBExtend =
       TargetTransformInfo::getPartialReductionExtendKind(ExtB);
 
+  PartialReductionChain Chain;
+  Chain.Reduction = Rdx.getLoopExitInstr();
+  Chain.ExtendA = ExtA;
+  Chain.ExtendB = ExtB;
+  Chain.ScaleFactor = TargetScaleFactor;
+  Chain.BinOp = dyn_cast<Instruction>(Op);
+
   if (LoopVectorizationPlanner::getDecisionAndClampRange(
           [&](ElementCount VF) {
             InstructionCost Cost = TTI->getPartialReductionCost(
@@ -8868,9 +8865,9 @@ static unsigned getReductionScaleFactor(PHINode *PHI,
             return Cost.isValid();
           },
           Range))
-    return TargetScaleFactor;
+    return Chain;
 
-  return DefaultScaleFactor;
+  return std::nullopt;
 }
 
 VPRecipeBase *
@@ -8899,11 +8896,9 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
              Phi->getIncomingValueForBlock(OrigLoop->getLoopPreheader()));
 
       // If the PHI is used by a partial reduction, set the scale factor
-      unsigned ScaleFactor =
-          getReductionScaleFactor(Phi, RdxDesc, TTI, Range, CM);
-      Instruction *ReductionInstr = RdxDesc.getLoopExitInstr();
-      if (ScaleFactor != 1)
-        Plan.addScaledReductionExitInstr(RdxDesc.getLoopExitInstr());
+      std::optional<PartialReductionChain> Chain =
+          getScaledReduction(Phi, RdxDesc, TTI, Range, CM);
+      unsigned ScaleFactor = Chain ? Chain->ScaleFactor : 1;
       PhiRecipe = new VPReductionPHIRecipe(
           Phi, RdxDesc, *StartV, CM.isInLoopReduction(Phi),
           CM.useOrderedReductions(RdxDesc), ScaleFactor);
@@ -8938,7 +8933,7 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
   if (isa<LoadInst>(Instr) || isa<StoreInst>(Instr))
     return tryToWidenMemory(Instr, Operands, Range);
 
-  if (Plan.isScaledReductionExitInstr(Instr))
+  if (Plan.getScaledReductionForInstr(Instr))
     return tryToCreatePartialReduction(Instr, Operands);
 
   if (!shouldWiden(Instr, Range))
@@ -9329,8 +9324,28 @@ LoopVectorizationPlanner::tryToBuildVPlanWithVPRecipes(VFRange &Range) {
         bool NeedsBlends = BB != HeaderBB && !BB->phis().empty();
         return Legal->blockNeedsPredication(BB) || NeedsBlends;
       });
+
+  // Cache the partial reductions up front so we can remove the invalid ones
+  // before creating the recipes
+  for (BasicBlock *BB : make_range(DFS.beginRPO(), DFS.endRPO())) {
+    for (Instruction &I : drop_end(BB->instructionsWithoutDebug(false))) {
+      Instruction *Instr = &I;
+      auto *Phi = dyn_cast<PHINode>(Instr);
+      if (!Phi || !Legal->isReductionVariable(Phi))
+        continue;
+      const RecurrenceDescriptor &RdxDesc =
+          Legal->getReductionVars().find(Phi)->second;
+      std::optional<PartialReductionChain> Chain =
+          getScaledReduction(Phi, RdxDesc, &TTI, Range, CM);
+      if (Chain.has_value())
+        Plan->addScaledReductionExitInstr(*Chain);
+    }
+  }
+  Plan->removeInvalidScaledReductionExitInstrs();
+
   auto *MiddleVPBB = Plan->getMiddleBlock();
   VPBasicBlock::iterator MBIP = MiddleVPBB->getFirstNonPhi();
+
   for (BasicBlock *BB : make_range(DFS.beginRPO(), DFS.endRPO())) {
     // Relevant instructions from basic block BB will be grouped into VPRecipe
     // ingredients and fill a new VPBasicBlock.
@@ -9373,11 +9388,8 @@ LoopVectorizationPlanner::tryToBuildVPlanWithVPRecipes(VFRange &Range) {
         continue;
       }
 
-      VPRecipeBase *Recipe = nullptr;
-
-      if (!Recipe)
-        Recipe =
-            RecipeBuilder.tryToCreateWidenRecipe(Instr, Operands, Range, VPBB);
+      VPRecipeBase *Recipe =
+          RecipeBuilder.tryToCreateWidenRecipe(Instr, Operands, Range, VPBB);
       if (!Recipe)
         Recipe = RecipeBuilder.handleReplication(Instr, Range);
 
