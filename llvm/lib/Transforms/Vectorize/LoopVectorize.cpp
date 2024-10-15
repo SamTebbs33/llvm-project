@@ -8897,7 +8897,7 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
 
       // If the PHI is used by a partial reduction, set the scale factor
       std::optional<PartialReductionChain> Chain =
-          getScaledReduction(Phi, RdxDesc, TTI, Range, CM);
+          Plan.getScaledReductionForInstr(RdxDesc.getLoopExitInstr());
       unsigned ScaleFactor = Chain ? Chain->ScaleFactor : 1;
       PhiRecipe = new VPReductionPHIRecipe(
           Phi, RdxDesc, *StartV, CM.isInLoopReduction(Phi),
