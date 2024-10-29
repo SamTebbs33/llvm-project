@@ -9327,12 +9327,10 @@ LoopVectorizationPlanner::tryToBuildVPlanWithVPRecipes(VFRange &Range) {
 
   // Cache the partial reductions up front so we can remove the invalid ones
   // before creating the recipes
-  for (const auto &[Phi, RdxDesc] : Legal->getReductionVars()) {
-    std::optional<PartialReductionChain> Chain =
-        getScaledReduction(Phi, RdxDesc, &TTI, Range, CM);
-    if (Chain.has_value())
+  for (const auto &[Phi, RdxDesc] : Legal->getReductionVars())
+    if (std::optional<PartialReductionChain> Chain =
+        getScaledReduction(Phi, RdxDesc, &TTI, Range, CM))
       Plan->addScaledReductionExitInstr(*Chain);
-  }
   Plan->removeInvalidScaledReductionExitInstrs();
 
   auto *MiddleVPBB = Plan->getMiddleBlock();
