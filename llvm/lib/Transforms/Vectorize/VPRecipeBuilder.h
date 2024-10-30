@@ -42,7 +42,6 @@ struct PartialReductionChain {
   unsigned ScaleFactor;
 };
 
-
 /// Helper class to create VPRecipies from IR instructions.
 class VPRecipeBuilder {
   /// The VPlan new recipes are added to.
@@ -195,7 +194,6 @@ public:
     for (auto *Instr : PartialReductionsToRemove)
       ScaledReductionExitInstrs.erase(Instr);
   }
-
 
   /// Create and return a widened recipe for \p I if one can be created within
   /// the given VF \p Range.

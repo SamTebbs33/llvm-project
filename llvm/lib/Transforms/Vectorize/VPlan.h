@@ -2433,7 +2433,8 @@ class VPPartialReductionRecipe : public VPRecipeWithIRFlags {
 
 public:
   template <typename IterT>
-  VPPartialReductionRecipe(unsigned ReductionOpcode, iterator_range<IterT> Operands)
+  VPPartialReductionRecipe(unsigned ReductionOpcode,
+                           iterator_range<IterT> Operands)
       : VPRecipeWithIRFlags(VPDef::VPPartialReductionSC, Operands),
         Opcode(ReductionOpcode) {
     assert(isa<VPReductionPHIRecipe>(getOperand(1)->getDefiningRecipe()) &&
@@ -2441,8 +2442,7 @@ public:
   }
   ~VPPartialReductionRecipe() override = default;
   VPPartialReductionRecipe *clone() override {
-    return new VPPartialReductionRecipe(Opcode,
-                                        operands());
+    return new VPPartialReductionRecipe(Opcode, operands());
   }
 
   VP_CLASSOF_IMPL(VPDef::VPPartialReductionSC)
