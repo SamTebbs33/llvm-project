@@ -232,14 +232,14 @@ define void @not_dotp_different_types(ptr %a, ptr %b) #0 {
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP36:%.*]] = load i16, ptr [[TMP20]], align 2
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP37:%.*]] = load i16, ptr [[TMP21]], align 2
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP38:%.*]] = load i16, ptr [[TMP22]], align 2
-; CHECK-INTERLEAVE1-NEXT:    [[TMP39:%.*]] = load i16, ptr [[TMP23]], align 2
-; CHECK-INTERLEAVE1-NEXT:    [[TMP40:%.*]] = load i16, ptr [[TMP24]], align 2
-; CHECK-INTERLEAVE1-NEXT:    [[TMP41:%.*]] = load i16, ptr [[TMP25]], align 2
-; CHECK-INTERLEAVE1-NEXT:    [[TMP42:%.*]] = load i16, ptr [[TMP26]], align 2
-; CHECK-INTERLEAVE1-NEXT:    [[TMP43:%.*]] = load i16, ptr [[TMP27]], align 2
-; CHECK-INTERLEAVE1-NEXT:    [[TMP44:%.*]] = load i16, ptr [[TMP28]], align 2
-; CHECK-INTERLEAVE1-NEXT:    [[TMP45:%.*]] = load i16, ptr [[TMP29]], align 2
-; CHECK-INTERLEAVE1-NEXT:    [[TMP46:%.*]] = load i16, ptr [[TMP30]], align 2
+; CHECK-INTERLEAVE1-NEXT:    [[TMP41:%.*]] = load i16, ptr [[TMP23]], align 2
+; CHECK-INTERLEAVE1-NEXT:    [[TMP42:%.*]] = load i16, ptr [[TMP24]], align 2
+; CHECK-INTERLEAVE1-NEXT:    [[TMP43:%.*]] = load i16, ptr [[TMP25]], align 2
+; CHECK-INTERLEAVE1-NEXT:    [[TMP44:%.*]] = load i16, ptr [[TMP26]], align 2
+; CHECK-INTERLEAVE1-NEXT:    [[TMP45:%.*]] = load i16, ptr [[TMP27]], align 2
+; CHECK-INTERLEAVE1-NEXT:    [[TMP46:%.*]] = load i16, ptr [[TMP28]], align 2
+; CHECK-INTERLEAVE1-NEXT:    [[TMP55:%.*]] = load i16, ptr [[TMP29]], align 2
+; CHECK-INTERLEAVE1-NEXT:    [[TMP56:%.*]] = load i16, ptr [[TMP30]], align 2
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP47:%.*]] = load i16, ptr [[TMP31]], align 2
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP48:%.*]] = load i16, ptr [[TMP32]], align 2
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP49:%.*]] = load i16, ptr [[TMP33]], align 2
@@ -248,14 +248,14 @@ define void @not_dotp_different_types(ptr %a, ptr %b) #0 {
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP52:%.*]] = insertelement <16 x i16> [[TMP51]], i16 [[TMP36]], i32 1
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP53:%.*]] = insertelement <16 x i16> [[TMP52]], i16 [[TMP37]], i32 2
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP54:%.*]] = insertelement <16 x i16> [[TMP53]], i16 [[TMP38]], i32 3
-; CHECK-INTERLEAVE1-NEXT:    [[TMP55:%.*]] = insertelement <16 x i16> [[TMP54]], i16 [[TMP39]], i32 4
-; CHECK-INTERLEAVE1-NEXT:    [[TMP56:%.*]] = insertelement <16 x i16> [[TMP55]], i16 [[TMP40]], i32 5
-; CHECK-INTERLEAVE1-NEXT:    [[TMP57:%.*]] = insertelement <16 x i16> [[TMP56]], i16 [[TMP41]], i32 6
-; CHECK-INTERLEAVE1-NEXT:    [[TMP58:%.*]] = insertelement <16 x i16> [[TMP57]], i16 [[TMP42]], i32 7
-; CHECK-INTERLEAVE1-NEXT:    [[TMP59:%.*]] = insertelement <16 x i16> [[TMP58]], i16 [[TMP43]], i32 8
-; CHECK-INTERLEAVE1-NEXT:    [[TMP60:%.*]] = insertelement <16 x i16> [[TMP59]], i16 [[TMP44]], i32 9
-; CHECK-INTERLEAVE1-NEXT:    [[TMP61:%.*]] = insertelement <16 x i16> [[TMP60]], i16 [[TMP45]], i32 10
-; CHECK-INTERLEAVE1-NEXT:    [[TMP62:%.*]] = insertelement <16 x i16> [[TMP61]], i16 [[TMP46]], i32 11
+; CHECK-INTERLEAVE1-NEXT:    [[TMP57:%.*]] = insertelement <16 x i16> [[TMP54]], i16 [[TMP41]], i32 4
+; CHECK-INTERLEAVE1-NEXT:    [[TMP58:%.*]] = insertelement <16 x i16> [[TMP57]], i16 [[TMP42]], i32 5
+; CHECK-INTERLEAVE1-NEXT:    [[TMP59:%.*]] = insertelement <16 x i16> [[TMP58]], i16 [[TMP43]], i32 6
+; CHECK-INTERLEAVE1-NEXT:    [[TMP60:%.*]] = insertelement <16 x i16> [[TMP59]], i16 [[TMP44]], i32 7
+; CHECK-INTERLEAVE1-NEXT:    [[TMP61:%.*]] = insertelement <16 x i16> [[TMP60]], i16 [[TMP45]], i32 8
+; CHECK-INTERLEAVE1-NEXT:    [[TMP96:%.*]] = insertelement <16 x i16> [[TMP61]], i16 [[TMP46]], i32 9
+; CHECK-INTERLEAVE1-NEXT:    [[TMP97:%.*]] = insertelement <16 x i16> [[TMP96]], i16 [[TMP55]], i32 10
+; CHECK-INTERLEAVE1-NEXT:    [[TMP62:%.*]] = insertelement <16 x i16> [[TMP97]], i16 [[TMP56]], i32 11
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP63:%.*]] = insertelement <16 x i16> [[TMP62]], i16 [[TMP47]], i32 12
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP64:%.*]] = insertelement <16 x i16> [[TMP63]], i16 [[TMP48]], i32 13
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP65:%.*]] = insertelement <16 x i16> [[TMP64]], i16 [[TMP49]], i32 14
@@ -424,8 +424,8 @@ define void @not_dotp_different_types(ptr %a, ptr %b) #0 {
 ; CHECK-INTERLEAVED-NEXT:    [[TMP66:%.*]] = getelementptr i8, ptr [[B]], i64 [[TMP27]]
 ; CHECK-INTERLEAVED-NEXT:    [[TMP67:%.*]] = getelementptr i8, ptr [[B]], i64 [[TMP28]]
 ; CHECK-INTERLEAVED-NEXT:    [[TMP68:%.*]] = getelementptr i8, ptr [[B]], i64 [[TMP29]]
-; CHECK-INTERLEAVED-NEXT:    [[TMP141:%.*]] = getelementptr i8, ptr [[B]], i64 [[TMP30]]
-; CHECK-INTERLEAVED-NEXT:    [[TMP142:%.*]] = getelementptr i8, ptr [[B]], i64 [[TMP31]]
+; CHECK-INTERLEAVED-NEXT:    [[TMP139:%.*]] = getelementptr i8, ptr [[B]], i64 [[TMP30]]
+; CHECK-INTERLEAVED-NEXT:    [[TMP140:%.*]] = getelementptr i8, ptr [[B]], i64 [[TMP31]]
 ; CHECK-INTERLEAVED-NEXT:    [[TMP69:%.*]] = load i16, ptr [[TMP39]], align 2
 ; CHECK-INTERLEAVED-NEXT:    [[TMP70:%.*]] = load i16, ptr [[TMP40]], align 2
 ; CHECK-INTERLEAVED-NEXT:    [[TMP71:%.*]] = load i16, ptr [[TMP41]], align 2
@@ -472,8 +472,8 @@ define void @not_dotp_different_types(ptr %a, ptr %b) #0 {
 ; CHECK-INTERLEAVED-NEXT:    [[TMP112:%.*]] = load i16, ptr [[TMP66]], align 2
 ; CHECK-INTERLEAVED-NEXT:    [[TMP113:%.*]] = load i16, ptr [[TMP67]], align 2
 ; CHECK-INTERLEAVED-NEXT:    [[TMP114:%.*]] = load i16, ptr [[TMP68]], align 2
-; CHECK-INTERLEAVED-NEXT:    [[TMP115:%.*]] = load i16, ptr [[TMP141]], align 2
-; CHECK-INTERLEAVED-NEXT:    [[TMP116:%.*]] = load i16, ptr [[TMP142]], align 2
+; CHECK-INTERLEAVED-NEXT:    [[TMP115:%.*]] = load i16, ptr [[TMP139]], align 2
+; CHECK-INTERLEAVED-NEXT:    [[TMP116:%.*]] = load i16, ptr [[TMP140]], align 2
 ; CHECK-INTERLEAVED-NEXT:    [[TMP117:%.*]] = insertelement <16 x i16> poison, i16 [[TMP101]], i32 0
 ; CHECK-INTERLEAVED-NEXT:    [[TMP118:%.*]] = insertelement <16 x i16> [[TMP117]], i16 [[TMP102]], i32 1
 ; CHECK-INTERLEAVED-NEXT:    [[TMP119:%.*]] = insertelement <16 x i16> [[TMP118]], i16 [[TMP103]], i32 2
@@ -497,11 +497,11 @@ define void @not_dotp_different_types(ptr %a, ptr %b) #0 {
 ; CHECK-INTERLEAVED-NEXT:    [[TMP137]] = add <16 x i32> [[TMP135]], [[VEC_PHI]]
 ; CHECK-INTERLEAVED-NEXT:    [[TMP138]] = add <16 x i32> [[TMP136]], [[VEC_PHI1]]
 ; CHECK-INTERLEAVED-NEXT:    [[INDEX_NEXT]] = add nuw i64 [[INDEX]], 32
-; CHECK-INTERLEAVED-NEXT:    [[TMP139:%.*]] = icmp eq i64 [[INDEX_NEXT]], 0
-; CHECK-INTERLEAVED-NEXT:    br i1 [[TMP139]], label [[MIDDLE_BLOCK:%.*]], label [[VECTOR_BODY]], !llvm.loop [[LOOP5:![0-9]+]]
+; CHECK-INTERLEAVED-NEXT:    [[TMP141:%.*]] = icmp eq i64 [[INDEX_NEXT]], 0
+; CHECK-INTERLEAVED-NEXT:    br i1 [[TMP141]], label [[MIDDLE_BLOCK:%.*]], label [[VECTOR_BODY]], !llvm.loop [[LOOP5:![0-9]+]]
 ; CHECK-INTERLEAVED:       middle.block:
 ; CHECK-INTERLEAVED-NEXT:    [[BIN_RDX:%.*]] = add <16 x i32> [[TMP138]], [[TMP137]]
-; CHECK-INTERLEAVED-NEXT:    [[TMP140:%.*]] = call i32 @llvm.vector.reduce.add.v16i32(<16 x i32> [[BIN_RDX]])
+; CHECK-INTERLEAVED-NEXT:    [[TMP142:%.*]] = call i32 @llvm.vector.reduce.add.v16i32(<16 x i32> [[BIN_RDX]])
 ; CHECK-INTERLEAVED-NEXT:    br i1 true, label [[FOR_COND_CLEANUP_LOOPEXIT:%.*]], label [[VEC_EPILOG_ITER_CHECK:%.*]]
 ;
 entry:
@@ -742,37 +742,37 @@ for.body:                                         ; preds = %for.body, %entry
   br i1 %exitcond.not, label %for.cond.cleanup.loopexit, label %for.body
 }
 
-define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %w, ptr %scales, ptr %u, ptr %v) #0 {
+define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %a, ptr %b, ptr %c, ptr %d) #0 {
 ; CHECK-LABEL: define void @dotp_unrolled(
-; CHECK-SAME: i32 [[NUM_OUT:%.*]], i32 [[NUM_IN:%.*]], ptr [[W:%.*]], ptr [[SCALES:%.*]], ptr [[U:%.*]], ptr [[V:%.*]]) #[[ATTR0:[0-9]+]] {
+; CHECK-SAME: i32 [[NUM_OUT:%.*]], i32 [[NUM_IN:%.*]], ptr [[A:%.*]], ptr [[B:%.*]], ptr [[C:%.*]], ptr [[D:%.*]]) #[[ATTR0:[0-9]+]] {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[CMP154:%.*]] = icmp sgt i32 [[NUM_OUT]], 3
 ; CHECK-NEXT:    br i1 [[CMP154]], label [[FOR_BODY_LR_PH:%.*]], label [[FOR_END98:%.*]]
 ; CHECK:       for.body.lr.ph:
 ; CHECK-NEXT:    [[DIV:%.*]] = sdiv i32 [[NUM_OUT]], 4
 ; CHECK-NEXT:    [[MUL:%.*]] = shl nsw i32 [[DIV]], 2
-; CHECK-NEXT:    [[CMP11145:%.*]] = icmp sgt i32 [[NUM_IN]], 0
-; CHECK-NEXT:    [[IDXPROM44:%.*]] = sext i32 [[NUM_IN]] to i64
+; CHECK-NEXT:    [[CMP111LOAD_B:%.*]] = icmp sgt i32 [[NUM_IN]], 0
+; CHECK-NEXT:    [[IDXPROMLOAD_PROM_A0:%.*]] = sext i32 [[NUM_IN]] to i64
 ; CHECK-NEXT:    [[TMP0:%.*]] = zext nneg i32 [[MUL]] to i64
-; CHECK-NEXT:    br i1 [[CMP11145]], label [[FOR_BODY_US_PREHEADER:%.*]], label [[FOR_BODY_PREHEADER:%.*]]
+; CHECK-NEXT:    br i1 [[CMP111LOAD_B]], label [[FOR_BODY_US_PREHEADER:%.*]], label [[FOR_BODY_PREHEADER:%.*]]
 ; CHECK:       for.body.preheader:
 ; CHECK-NEXT:    br label [[FOR_END98]]
 ; CHECK:       for.body.us.preheader:
 ; CHECK-NEXT:    [[WIDE_TRIP_COUNT:%.*]] = zext nneg i32 [[NUM_IN]] to i64
 ; CHECK-NEXT:    br label [[ITER_CHECK:%.*]]
 ; CHECK:       iter.check:
-; CHECK-NEXT:    [[INDVARS_IV164:%.*]] = phi i64 [ 0, [[FOR_BODY_US_PREHEADER]] ], [ [[INDVARS_IV_NEXT165:%.*]], [[FOR_COND10_FOR_COND_CLEANUP_CRIT_EDGE_US:%.*]] ]
-; CHECK-NEXT:    [[ARRAYIDX_US:%.*]] = getelementptr inbounds ptr, ptr [[W]], i64 [[INDVARS_IV164]]
-; CHECK-NEXT:    [[TMP1:%.*]] = load ptr, ptr [[ARRAYIDX_US]], align 8
+; CHECK-NEXT:    [[INDVARS_IV164:%.*]] = phi i64 [ 0, [[FOR_BODY_US_PREHEADER]] ], [ [[IV_NEXT2:%.*]], [[FOR_COND10_FOR_COND_CLEANUP_CRIT_EDGE_US:%.*]] ]
+; CHECK-NEXT:    [[GEP_A0:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[INDVARS_IV164]]
+; CHECK-NEXT:    [[TMP1:%.*]] = load ptr, ptr [[GEP_A0]], align 8
 ; CHECK-NEXT:    [[TMP2:%.*]] = or disjoint i64 [[INDVARS_IV164]], 1
-; CHECK-NEXT:    [[ARRAYIDX3_US:%.*]] = getelementptr inbounds ptr, ptr [[W]], i64 [[TMP2]]
-; CHECK-NEXT:    [[TMP3:%.*]] = load ptr, ptr [[ARRAYIDX3_US]], align 8
+; CHECK-NEXT:    [[GEP_A1:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP2]]
+; CHECK-NEXT:    [[TMP3:%.*]] = load ptr, ptr [[GEP_A1]], align 8
 ; CHECK-NEXT:    [[TMP4:%.*]] = or disjoint i64 [[INDVARS_IV164]], 2
-; CHECK-NEXT:    [[ARRAYIDX6_US:%.*]] = getelementptr inbounds ptr, ptr [[W]], i64 [[TMP4]]
-; CHECK-NEXT:    [[TMP5:%.*]] = load ptr, ptr [[ARRAYIDX6_US]], align 8
+; CHECK-NEXT:    [[GEP_A2:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP4]]
+; CHECK-NEXT:    [[TMP5:%.*]] = load ptr, ptr [[GEP_A2]], align 8
 ; CHECK-NEXT:    [[TMP6:%.*]] = or disjoint i64 [[INDVARS_IV164]], 3
-; CHECK-NEXT:    [[ARRAYIDX9_US:%.*]] = getelementptr inbounds ptr, ptr [[W]], i64 [[TMP6]]
-; CHECK-NEXT:    [[TMP7:%.*]] = load ptr, ptr [[ARRAYIDX9_US]], align 8
+; CHECK-NEXT:    [[GEP_A3:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP6]]
+; CHECK-NEXT:    [[TMP7:%.*]] = load ptr, ptr [[GEP_A3]], align 8
 ; CHECK-NEXT:    [[MIN_ITERS_CHECK:%.*]] = icmp ult i64 [[WIDE_TRIP_COUNT]], 8
 ; CHECK-NEXT:    br i1 [[MIN_ITERS_CHECK]], label [[VEC_EPILOG_SCALAR_PH:%.*]], label [[VECTOR_MAIN_LOOP_ITER_CHECK:%.*]]
 ; CHECK:       vector.main.loop.iter.check:
@@ -793,7 +793,7 @@ define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %w, ptr %scales, ptr %
 ; CHECK-NEXT:    [[TMP12:%.*]] = getelementptr inbounds i8, ptr [[TMP11]], i32 0
 ; CHECK-NEXT:    [[WIDE_LOAD:%.*]] = load <16 x i8>, ptr [[TMP12]], align 1
 ; CHECK-NEXT:    [[TMP13:%.*]] = sext <16 x i8> [[WIDE_LOAD]] to <16 x i32>
-; CHECK-NEXT:    [[TMP14:%.*]] = getelementptr inbounds i8, ptr [[U]], i64 [[TMP10]]
+; CHECK-NEXT:    [[TMP14:%.*]] = getelementptr inbounds i8, ptr [[C]], i64 [[TMP10]]
 ; CHECK-NEXT:    [[TMP15:%.*]] = getelementptr inbounds i8, ptr [[TMP14]], i32 0
 ; CHECK-NEXT:    [[WIDE_LOAD5:%.*]] = load <16 x i8>, ptr [[TMP15]], align 1
 ; CHECK-NEXT:    [[TMP16:%.*]] = sext <16 x i8> [[WIDE_LOAD5]] to <16 x i32>
@@ -850,34 +850,34 @@ define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %w, ptr %scales, ptr %
 ; CHECK-NEXT:    [[VEC_PHI19:%.*]] = phi <2 x i32> [ [[TMP38]], [[VEC_EPILOG_PH]] ], [ [[PARTIAL_REDUCE28:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
 ; CHECK-NEXT:    [[VEC_PHI20:%.*]] = phi <2 x i32> [ [[TMP35]], [[VEC_EPILOG_PH]] ], [ [[PARTIAL_REDUCE26:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
 ; CHECK-NEXT:    [[VEC_PHI21:%.*]] = phi <2 x i32> [ [[TMP36]], [[VEC_EPILOG_PH]] ], [ [[PARTIAL_REDUCE24:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
-; CHECK-NEXT:    [[TMP45:%.*]] = add i64 [[INDEX17]], 0
-; CHECK-NEXT:    [[TMP46:%.*]] = getelementptr inbounds i8, ptr [[TMP1]], i64 [[TMP45]]
-; CHECK-NEXT:    [[TMP47:%.*]] = getelementptr inbounds i8, ptr [[TMP46]], i32 0
+; CHECK-NEXT:    [[TMP39:%.*]] = add i64 [[INDEX17]], 0
+; CHECK-NEXT:    [[TMP40:%.*]] = getelementptr inbounds i8, ptr [[TMP1]], i64 [[TMP39]]
+; CHECK-NEXT:    [[TMP47:%.*]] = getelementptr inbounds i8, ptr [[TMP40]], i32 0
 ; CHECK-NEXT:    [[WIDE_LOAD22:%.*]] = load <8 x i8>, ptr [[TMP47]], align 1
-; CHECK-NEXT:    [[TMP40:%.*]] = sext <8 x i8> [[WIDE_LOAD22]] to <8 x i32>
-; CHECK-NEXT:    [[TMP49:%.*]] = getelementptr inbounds i8, ptr [[U]], i64 [[TMP45]]
+; CHECK-NEXT:    [[TMP41:%.*]] = sext <8 x i8> [[WIDE_LOAD22]] to <8 x i32>
+; CHECK-NEXT:    [[TMP49:%.*]] = getelementptr inbounds i8, ptr [[C]], i64 [[TMP39]]
 ; CHECK-NEXT:    [[TMP50:%.*]] = getelementptr inbounds i8, ptr [[TMP49]], i32 0
 ; CHECK-NEXT:    [[WIDE_LOAD23:%.*]] = load <8 x i8>, ptr [[TMP50]], align 1
-; CHECK-NEXT:    [[TMP43:%.*]] = sext <8 x i8> [[WIDE_LOAD23]] to <8 x i32>
-; CHECK-NEXT:    [[TMP44:%.*]] = mul nsw <8 x i32> [[TMP43]], [[TMP40]]
-; CHECK-NEXT:    [[PARTIAL_REDUCE24]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI21]], <8 x i32> [[TMP44]])
-; CHECK-NEXT:    [[TMP54:%.*]] = getelementptr inbounds i8, ptr [[TMP3]], i64 [[TMP45]]
+; CHECK-NEXT:    [[TMP42:%.*]] = sext <8 x i8> [[WIDE_LOAD23]] to <8 x i32>
+; CHECK-NEXT:    [[TMP43:%.*]] = mul nsw <8 x i32> [[TMP42]], [[TMP41]]
+; CHECK-NEXT:    [[PARTIAL_REDUCE24]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI21]], <8 x i32> [[TMP43]])
+; CHECK-NEXT:    [[TMP54:%.*]] = getelementptr inbounds i8, ptr [[TMP3]], i64 [[TMP39]]
 ; CHECK-NEXT:    [[TMP55:%.*]] = getelementptr inbounds i8, ptr [[TMP54]], i32 0
 ; CHECK-NEXT:    [[WIDE_LOAD25:%.*]] = load <8 x i8>, ptr [[TMP55]], align 1
 ; CHECK-NEXT:    [[TMP53:%.*]] = sext <8 x i8> [[WIDE_LOAD25]] to <8 x i32>
-; CHECK-NEXT:    [[TMP48:%.*]] = mul nsw <8 x i32> [[TMP53]], [[TMP43]]
+; CHECK-NEXT:    [[TMP48:%.*]] = mul nsw <8 x i32> [[TMP53]], [[TMP42]]
 ; CHECK-NEXT:    [[PARTIAL_REDUCE26]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI20]], <8 x i32> [[TMP48]])
-; CHECK-NEXT:    [[TMP59:%.*]] = getelementptr inbounds i8, ptr [[TMP5]], i64 [[TMP45]]
+; CHECK-NEXT:    [[TMP59:%.*]] = getelementptr inbounds i8, ptr [[TMP5]], i64 [[TMP39]]
 ; CHECK-NEXT:    [[TMP60:%.*]] = getelementptr inbounds i8, ptr [[TMP59]], i32 0
 ; CHECK-NEXT:    [[WIDE_LOAD27:%.*]] = load <8 x i8>, ptr [[TMP60]], align 1
 ; CHECK-NEXT:    [[TMP51:%.*]] = sext <8 x i8> [[WIDE_LOAD27]] to <8 x i32>
-; CHECK-NEXT:    [[TMP52:%.*]] = mul nsw <8 x i32> [[TMP51]], [[TMP43]]
+; CHECK-NEXT:    [[TMP52:%.*]] = mul nsw <8 x i32> [[TMP51]], [[TMP42]]
 ; CHECK-NEXT:    [[PARTIAL_REDUCE28]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI19]], <8 x i32> [[TMP52]])
-; CHECK-NEXT:    [[TMP64:%.*]] = getelementptr inbounds i8, ptr [[TMP7]], i64 [[TMP45]]
+; CHECK-NEXT:    [[TMP64:%.*]] = getelementptr inbounds i8, ptr [[TMP7]], i64 [[TMP39]]
 ; CHECK-NEXT:    [[TMP65:%.*]] = getelementptr inbounds i8, ptr [[TMP64]], i32 0
 ; CHECK-NEXT:    [[WIDE_LOAD29:%.*]] = load <8 x i8>, ptr [[TMP65]], align 1
 ; CHECK-NEXT:    [[TMP57:%.*]] = sext <8 x i8> [[WIDE_LOAD29]] to <8 x i32>
-; CHECK-NEXT:    [[TMP56:%.*]] = mul nsw <8 x i32> [[TMP57]], [[TMP43]]
+; CHECK-NEXT:    [[TMP56:%.*]] = mul nsw <8 x i32> [[TMP57]], [[TMP42]]
 ; CHECK-NEXT:    [[PARTIAL_REDUCE30]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI18]], <8 x i32> [[TMP56]])
 ; CHECK-NEXT:    [[INDEX_NEXT27]] = add nuw i64 [[INDEX17]], 8
 ; CHECK-NEXT:    [[TMP69:%.*]] = icmp eq i64 [[INDEX_NEXT27]], [[N_VEC16]]
@@ -897,88 +897,88 @@ define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %w, ptr %scales, ptr %
 ; CHECK-NEXT:    [[BC_MERGE_RDX32:%.*]] = phi i32 [ [[TMP73]], [[VEC_EPILOG_MIDDLE_BLOCK]] ], [ 0, [[ITER_CHECK]] ], [ [[TMP34]], [[VEC_EPILOG_ITER_CHECK]] ]
 ; CHECK-NEXT:    br label [[FOR_BODY12_US:%.*]]
 ; CHECK:       for.body12.us:
-; CHECK-NEXT:    [[INDVARS_IV161:%.*]] = phi i64 [ [[BC_RESUME_VAL]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[INDVARS_IV_NEXT162:%.*]], [[FOR_BODY12_US]] ]
-; CHECK-NEXT:    [[TOTAL3_0149_US:%.*]] = phi i32 [ [[BC_MERGE_RDX29]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD43_US:%.*]], [[FOR_BODY12_US]] ]
-; CHECK-NEXT:    [[TOTAL2_0148_US:%.*]] = phi i32 [ [[BC_MERGE_RDX30]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD35_US:%.*]], [[FOR_BODY12_US]] ]
-; CHECK-NEXT:    [[TOTAL1_0147_US:%.*]] = phi i32 [ [[BC_MERGE_RDX31]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD27_US:%.*]], [[FOR_BODY12_US]] ]
-; CHECK-NEXT:    [[TOTAL0_0146_US:%.*]] = phi i32 [ [[BC_MERGE_RDX32]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD19_US:%.*]], [[FOR_BODY12_US]] ]
-; CHECK-NEXT:    [[ARRAYIDX14_US:%.*]] = getelementptr inbounds i8, ptr [[TMP1]], i64 [[INDVARS_IV161]]
-; CHECK-NEXT:    [[TMP74:%.*]] = load i8, ptr [[ARRAYIDX14_US]], align 1
-; CHECK-NEXT:    [[CONV_US:%.*]] = sext i8 [[TMP74]] to i32
-; CHECK-NEXT:    [[ARRAYIDX16_US:%.*]] = getelementptr inbounds i8, ptr [[U]], i64 [[INDVARS_IV161]]
-; CHECK-NEXT:    [[TMP75:%.*]] = load i8, ptr [[ARRAYIDX16_US]], align 1
-; CHECK-NEXT:    [[CONV17_US:%.*]] = sext i8 [[TMP75]] to i32
-; CHECK-NEXT:    [[MUL18_US:%.*]] = mul nsw i32 [[CONV17_US]], [[CONV_US]]
-; CHECK-NEXT:    [[ADD19_US]] = add nsw i32 [[MUL18_US]], [[TOTAL0_0146_US]]
-; CHECK-NEXT:    [[ARRAYIDX21_US:%.*]] = getelementptr inbounds i8, ptr [[TMP3]], i64 [[INDVARS_IV161]]
-; CHECK-NEXT:    [[TMP76:%.*]] = load i8, ptr [[ARRAYIDX21_US]], align 1
-; CHECK-NEXT:    [[CONV22_US:%.*]] = sext i8 [[TMP76]] to i32
-; CHECK-NEXT:    [[MUL26_US:%.*]] = mul nsw i32 [[CONV22_US]], [[CONV17_US]]
-; CHECK-NEXT:    [[ADD27_US]] = add nsw i32 [[MUL26_US]], [[TOTAL1_0147_US]]
-; CHECK-NEXT:    [[ARRAYIDX29_US:%.*]] = getelementptr inbounds i8, ptr [[TMP5]], i64 [[INDVARS_IV161]]
-; CHECK-NEXT:    [[TMP77:%.*]] = load i8, ptr [[ARRAYIDX29_US]], align 1
-; CHECK-NEXT:    [[CONV30_US:%.*]] = sext i8 [[TMP77]] to i32
-; CHECK-NEXT:    [[MUL34_US:%.*]] = mul nsw i32 [[CONV30_US]], [[CONV17_US]]
-; CHECK-NEXT:    [[ADD35_US]] = add nsw i32 [[MUL34_US]], [[TOTAL2_0148_US]]
-; CHECK-NEXT:    [[ARRAYIDX37_US:%.*]] = getelementptr inbounds i8, ptr [[TMP7]], i64 [[INDVARS_IV161]]
-; CHECK-NEXT:    [[TMP78:%.*]] = load i8, ptr [[ARRAYIDX37_US]], align 1
-; CHECK-NEXT:    [[CONV38_US:%.*]] = sext i8 [[TMP78]] to i32
-; CHECK-NEXT:    [[MUL42_US:%.*]] = mul nsw i32 [[CONV38_US]], [[CONV17_US]]
-; CHECK-NEXT:    [[ADD43_US]] = add nsw i32 [[MUL42_US]], [[TOTAL3_0149_US]]
-; CHECK-NEXT:    [[INDVARS_IV_NEXT162]] = add nuw nsw i64 [[INDVARS_IV161]], 1
-; CHECK-NEXT:    [[EXITCOND_NOT:%.*]] = icmp eq i64 [[INDVARS_IV_NEXT162]], [[WIDE_TRIP_COUNT]]
+; CHECK-NEXT:    [[IV:%.*]] = phi i64 [ [[BC_RESUME_VAL]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[IV_NEXT:%.*]], [[FOR_BODY12_US]] ]
+; CHECK-NEXT:    [[ACCUM3:%.*]] = phi i32 [ [[BC_MERGE_RDX29]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD_A3:%.*]], [[FOR_BODY12_US]] ]
+; CHECK-NEXT:    [[ACCUM2:%.*]] = phi i32 [ [[BC_MERGE_RDX30]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD_A2:%.*]], [[FOR_BODY12_US]] ]
+; CHECK-NEXT:    [[ACCUM1:%.*]] = phi i32 [ [[BC_MERGE_RDX31]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD_A1:%.*]], [[FOR_BODY12_US]] ]
+; CHECK-NEXT:    [[ACCUM0:%.*]] = phi i32 [ [[BC_MERGE_RDX32]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD_A0:%.*]], [[FOR_BODY12_US]] ]
+; CHECK-NEXT:    [[GEP_IDX_A0:%.*]] = getelementptr inbounds i8, ptr [[TMP1]], i64 [[IV]]
+; CHECK-NEXT:    [[LOAD_A0:%.*]] = load i8, ptr [[GEP_IDX_A0]], align 1
+; CHECK-NEXT:    [[EXT_A0:%.*]] = sext i8 [[LOAD_A0]] to i32
+; CHECK-NEXT:    [[GEP_C:%.*]] = getelementptr inbounds i8, ptr [[C]], i64 [[IV]]
+; CHECK-NEXT:    [[LOAD_C:%.*]] = load i8, ptr [[GEP_C]], align 1
+; CHECK-NEXT:    [[EXT_C:%.*]] = sext i8 [[LOAD_C]] to i32
+; CHECK-NEXT:    [[MUL_A0:%.*]] = mul nsw i32 [[EXT_C]], [[EXT_A0]]
+; CHECK-NEXT:    [[ADD_A0]] = add nsw i32 [[MUL_A0]], [[ACCUM0]]
+; CHECK-NEXT:    [[GEP_IDX_A1:%.*]] = getelementptr inbounds i8, ptr [[TMP3]], i64 [[IV]]
+; CHECK-NEXT:    [[LOAD_A1:%.*]] = load i8, ptr [[GEP_IDX_A1]], align 1
+; CHECK-NEXT:    [[EXT_A1:%.*]] = sext i8 [[LOAD_A1]] to i32
+; CHECK-NEXT:    [[MUL_A1:%.*]] = mul nsw i32 [[EXT_A1]], [[EXT_C]]
+; CHECK-NEXT:    [[ADD_A1]] = add nsw i32 [[MUL_A1]], [[ACCUM1]]
+; CHECK-NEXT:    [[GEP_IDX_A2:%.*]] = getelementptr inbounds i8, ptr [[TMP5]], i64 [[IV]]
+; CHECK-NEXT:    [[LOAD_A2:%.*]] = load i8, ptr [[GEP_IDX_A2]], align 1
+; CHECK-NEXT:    [[EXT_A2:%.*]] = sext i8 [[LOAD_A2]] to i32
+; CHECK-NEXT:    [[MUL_A2:%.*]] = mul nsw i32 [[EXT_A2]], [[EXT_C]]
+; CHECK-NEXT:    [[ADD_A2]] = add nsw i32 [[MUL_A2]], [[ACCUM2]]
+; CHECK-NEXT:    [[GEP_IDX_A3:%.*]] = getelementptr inbounds i8, ptr [[TMP7]], i64 [[IV]]
+; CHECK-NEXT:    [[LOAD_A3:%.*]] = load i8, ptr [[GEP_IDX_A3]], align 1
+; CHECK-NEXT:    [[EXT_A3:%.*]] = sext i8 [[LOAD_A3]] to i32
+; CHECK-NEXT:    [[MUL_A3:%.*]] = mul nsw i32 [[EXT_A3]], [[EXT_C]]
+; CHECK-NEXT:    [[ADD_A3]] = add nsw i32 [[MUL_A3]], [[ACCUM3]]
+; CHECK-NEXT:    [[IV_NEXT]] = add nuw nsw i64 [[IV]], 1
+; CHECK-NEXT:    [[EXITCOND_NOT:%.*]] = icmp eq i64 [[IV_NEXT]], [[WIDE_TRIP_COUNT]]
 ; CHECK-NEXT:    br i1 [[EXITCOND_NOT]], label [[FOR_COND10_FOR_COND_CLEANUP_CRIT_EDGE_US]], label [[FOR_BODY12_US]], !llvm.loop [[LOOP14:![0-9]+]]
 ; CHECK:       for.cond10.for.cond.cleanup_crit_edge.us:
-; CHECK-NEXT:    [[ADD19_US_LCSSA:%.*]] = phi i32 [ [[ADD19_US]], [[FOR_BODY12_US]] ], [ [[TMP34]], [[MIDDLE_BLOCK]] ], [ [[TMP73]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
-; CHECK-NEXT:    [[ADD27_US_LCSSA:%.*]] = phi i32 [ [[ADD27_US]], [[FOR_BODY12_US]] ], [ [[TMP33]], [[MIDDLE_BLOCK]] ], [ [[TMP72]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
-; CHECK-NEXT:    [[ADD35_US_LCSSA:%.*]] = phi i32 [ [[ADD35_US]], [[FOR_BODY12_US]] ], [ [[TMP32]], [[MIDDLE_BLOCK]] ], [ [[TMP71]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
-; CHECK-NEXT:    [[ADD43_US_LCSSA:%.*]] = phi i32 [ [[ADD43_US]], [[FOR_BODY12_US]] ], [ [[TMP31]], [[MIDDLE_BLOCK]] ], [ [[TMP70]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
-; CHECK-NEXT:    [[ARRAYIDX45_US:%.*]] = getelementptr inbounds i8, ptr [[TMP1]], i64 [[IDXPROM44]]
-; CHECK-NEXT:    [[TMP79:%.*]] = load i8, ptr [[ARRAYIDX45_US]], align 1
-; CHECK-NEXT:    [[CONV46_US:%.*]] = sext i8 [[TMP79]] to i32
-; CHECK-NEXT:    [[MUL47_US:%.*]] = mul nsw i32 [[CONV46_US]], 127
-; CHECK-NEXT:    [[ADD48_US:%.*]] = add nsw i32 [[MUL47_US]], [[ADD19_US_LCSSA]]
-; CHECK-NEXT:    [[CONV49_US:%.*]] = sitofp i32 [[ADD48_US]] to float
-; CHECK-NEXT:    [[ARRAYIDX52_US:%.*]] = getelementptr inbounds float, ptr [[SCALES]], i64 [[INDVARS_IV164]]
-; CHECK-NEXT:    [[TMP80:%.*]] = load float, ptr [[ARRAYIDX52_US]], align 4
-; CHECK-NEXT:    [[MUL53_US:%.*]] = fmul float [[TMP80]], [[CONV49_US]]
-; CHECK-NEXT:    [[ARRAYIDX56_US:%.*]] = getelementptr inbounds float, ptr [[V]], i64 [[INDVARS_IV164]]
-; CHECK-NEXT:    store float [[MUL53_US]], ptr [[ARRAYIDX56_US]], align 4
-; CHECK-NEXT:    [[ARRAYIDX58_US:%.*]] = getelementptr inbounds i8, ptr [[TMP3]], i64 [[IDXPROM44]]
-; CHECK-NEXT:    [[TMP81:%.*]] = load i8, ptr [[ARRAYIDX58_US]], align 1
-; CHECK-NEXT:    [[CONV59_US:%.*]] = sext i8 [[TMP81]] to i32
-; CHECK-NEXT:    [[MUL60_US:%.*]] = mul nsw i32 [[CONV59_US]], 127
-; CHECK-NEXT:    [[ADD61_US:%.*]] = add nsw i32 [[MUL60_US]], [[ADD27_US_LCSSA]]
-; CHECK-NEXT:    [[CONV62_US:%.*]] = sitofp i32 [[ADD61_US]] to float
-; CHECK-NEXT:    [[ARRAYIDX65_US:%.*]] = getelementptr inbounds float, ptr [[SCALES]], i64 [[TMP2]]
+; CHECK-NEXT:    [[ADD_A0_LCSSA:%.*]] = phi i32 [ [[ADD_A0]], [[FOR_BODY12_US]] ], [ [[TMP34]], [[MIDDLE_BLOCK]] ], [ [[TMP73]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
+; CHECK-NEXT:    [[ADD_A1_LCSSA:%.*]] = phi i32 [ [[ADD_A1]], [[FOR_BODY12_US]] ], [ [[TMP33]], [[MIDDLE_BLOCK]] ], [ [[TMP72]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
+; CHECK-NEXT:    [[ADD_A2_LCSSA:%.*]] = phi i32 [ [[ADD_A2]], [[FOR_BODY12_US]] ], [ [[TMP32]], [[MIDDLE_BLOCK]] ], [ [[TMP71]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
+; CHECK-NEXT:    [[ADD_A3_LCSSA:%.*]] = phi i32 [ [[ADD_A3]], [[FOR_BODY12_US]] ], [ [[TMP31]], [[MIDDLE_BLOCK]] ], [ [[TMP70]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
+; CHECK-NEXT:    [[GEP_IDXPROM_A0:%.*]] = getelementptr inbounds i8, ptr [[TMP1]], i64 [[IDXPROMLOAD_PROM_A0]]
+; CHECK-NEXT:    [[LOAD_PROM_A0:%.*]] = load i8, ptr [[GEP_IDXPROM_A0]], align 1
+; CHECK-NEXT:    [[EXT_PROM_A0:%.*]] = sext i8 [[LOAD_PROM_A0]] to i32
+; CHECK-NEXT:    [[MUL_PROM_A0:%.*]] = mul nsw i32 [[EXT_PROM_A0]], 127
+; CHECK-NEXT:    [[ADD_PROM_A0:%.*]] = add nsw i32 [[MUL_PROM_A0]], [[ADD_A0_LCSSA]]
+; CHECK-NEXT:    [[FPEXT_PROM_A0:%.*]] = sitofp i32 [[ADD_PROM_A0]] to float
+; CHECK-NEXT:    [[ARRAYIDX65_US:%.*]] = getelementptr inbounds float, ptr [[B]], i64 [[INDVARS_IV164]]
 ; CHECK-NEXT:    [[TMP82:%.*]] = load float, ptr [[ARRAYIDX65_US]], align 4
-; CHECK-NEXT:    [[MUL66_US:%.*]] = fmul float [[TMP82]], [[CONV62_US]]
-; CHECK-NEXT:    [[ARRAYIDX69_US:%.*]] = getelementptr inbounds float, ptr [[V]], i64 [[TMP2]]
-; CHECK-NEXT:    store float [[MUL66_US]], ptr [[ARRAYIDX69_US]], align 4
-; CHECK-NEXT:    [[ARRAYIDX71_US:%.*]] = getelementptr inbounds i8, ptr [[TMP5]], i64 [[IDXPROM44]]
-; CHECK-NEXT:    [[TMP83:%.*]] = load i8, ptr [[ARRAYIDX71_US]], align 1
-; CHECK-NEXT:    [[CONV72_US:%.*]] = sext i8 [[TMP83]] to i32
-; CHECK-NEXT:    [[MUL73_US:%.*]] = mul nsw i32 [[CONV72_US]], 127
-; CHECK-NEXT:    [[ADD74_US:%.*]] = add nsw i32 [[MUL73_US]], [[ADD35_US_LCSSA]]
-; CHECK-NEXT:    [[CONV75_US:%.*]] = sitofp i32 [[ADD74_US]] to float
-; CHECK-NEXT:    [[ARRAYIDX78_US:%.*]] = getelementptr inbounds float, ptr [[SCALES]], i64 [[TMP4]]
-; CHECK-NEXT:    [[TMP84:%.*]] = load float, ptr [[ARRAYIDX78_US]], align 4
-; CHECK-NEXT:    [[MUL79_US:%.*]] = fmul float [[TMP84]], [[CONV75_US]]
-; CHECK-NEXT:    [[ARRAYIDX82_US:%.*]] = getelementptr inbounds float, ptr [[V]], i64 [[TMP4]]
-; CHECK-NEXT:    store float [[MUL79_US]], ptr [[ARRAYIDX82_US]], align 4
-; CHECK-NEXT:    [[ARRAYIDX84_US:%.*]] = getelementptr inbounds i8, ptr [[TMP7]], i64 [[IDXPROM44]]
-; CHECK-NEXT:    [[TMP85:%.*]] = load i8, ptr [[ARRAYIDX84_US]], align 1
-; CHECK-NEXT:    [[CONV85_US:%.*]] = sext i8 [[TMP85]] to i32
-; CHECK-NEXT:    [[MUL86_US:%.*]] = mul nsw i32 [[CONV85_US]], 127
-; CHECK-NEXT:    [[ADD87_US:%.*]] = add nsw i32 [[MUL86_US]], [[ADD43_US_LCSSA]]
-; CHECK-NEXT:    [[CONV88_US:%.*]] = sitofp i32 [[ADD87_US]] to float
-; CHECK-NEXT:    [[ARRAYIDX91_US:%.*]] = getelementptr inbounds float, ptr [[SCALES]], i64 [[TMP6]]
-; CHECK-NEXT:    [[TMP86:%.*]] = load float, ptr [[ARRAYIDX91_US]], align 4
-; CHECK-NEXT:    [[MUL92_US:%.*]] = fmul float [[TMP86]], [[CONV88_US]]
-; CHECK-NEXT:    [[ARRAYIDX95_US:%.*]] = getelementptr inbounds float, ptr [[V]], i64 [[TMP6]]
-; CHECK-NEXT:    store float [[MUL92_US]], ptr [[ARRAYIDX95_US]], align 4
-; CHECK-NEXT:    [[INDVARS_IV_NEXT165]] = add nuw nsw i64 [[INDVARS_IV164]], 4
-; CHECK-NEXT:    [[CMP_US:%.*]] = icmp ult i64 [[INDVARS_IV_NEXT165]], [[TMP0]]
+; CHECK-NEXT:    [[FMUL_B:%.*]] = fmul float [[TMP82]], [[FPEXT_PROM_A0]]
+; CHECK-NEXT:    [[GEP_D:%.*]] = getelementptr inbounds float, ptr [[D]], i64 [[INDVARS_IV164]]
+; CHECK-NEXT:    store float [[FMUL_B]], ptr [[GEP_D]], align 4
+; CHECK-NEXT:    [[GEP_IDXPROM_A1:%.*]] = getelementptr inbounds i8, ptr [[TMP3]], i64 [[IDXPROMLOAD_PROM_A0]]
+; CHECK-NEXT:    [[LOAD_PROM_A1:%.*]] = load i8, ptr [[GEP_IDXPROM_A1]], align 1
+; CHECK-NEXT:    [[EXT_PROM_A1:%.*]] = sext i8 [[LOAD_PROM_A1]] to i32
+; CHECK-NEXT:    [[MUL_PROM_A1:%.*]] = mul nsw i32 [[EXT_PROM_A1]], 127
+; CHECK-NEXT:    [[ADD_PROM_A1:%.*]] = add nsw i32 [[MUL_PROM_A1]], [[ADD_A1_LCSSA]]
+; CHECK-NEXT:    [[FPEXT_PROM_A1:%.*]] = sitofp i32 [[ADD_PROM_A1]] to float
+; CHECK-NEXT:    [[GEP_B1:%.*]] = getelementptr inbounds float, ptr [[B]], i64 [[TMP2]]
+; CHECK-NEXT:    [[LOAD_B1:%.*]] = load float, ptr [[GEP_B1]], align 4
+; CHECK-NEXT:    [[FMUL_B1:%.*]] = fmul float [[LOAD_B1]], [[FPEXT_PROM_A1]]
+; CHECK-NEXT:    [[GEP_D1:%.*]] = getelementptr inbounds float, ptr [[D]], i64 [[TMP2]]
+; CHECK-NEXT:    store float [[FMUL_B1]], ptr [[GEP_D1]], align 4
+; CHECK-NEXT:    [[GEP_IDXPROM_A2:%.*]] = getelementptr inbounds i8, ptr [[TMP5]], i64 [[IDXPROMLOAD_PROM_A0]]
+; CHECK-NEXT:    [[LOAD_PROM_A2:%.*]] = load i8, ptr [[GEP_IDXPROM_A2]], align 1
+; CHECK-NEXT:    [[EXT_PROM_A2:%.*]] = sext i8 [[LOAD_PROM_A2]] to i32
+; CHECK-NEXT:    [[MUL_PROM_A2:%.*]] = mul nsw i32 [[EXT_PROM_A2]], 127
+; CHECK-NEXT:    [[ADD_PROM_A2:%.*]] = add nsw i32 [[MUL_PROM_A2]], [[ADD_A2_LCSSA]]
+; CHECK-NEXT:    [[FPEXT_PROM_A2:%.*]] = sitofp i32 [[ADD_PROM_A2]] to float
+; CHECK-NEXT:    [[GEP_B2:%.*]] = getelementptr inbounds float, ptr [[B]], i64 [[TMP4]]
+; CHECK-NEXT:    [[LOAD_B2:%.*]] = load float, ptr [[GEP_B2]], align 4
+; CHECK-NEXT:    [[FMUL_B2:%.*]] = fmul float [[LOAD_B2]], [[FPEXT_PROM_A2]]
+; CHECK-NEXT:    [[GEP_D2:%.*]] = getelementptr inbounds float, ptr [[D]], i64 [[TMP4]]
+; CHECK-NEXT:    store float [[FMUL_B2]], ptr [[GEP_D2]], align 4
+; CHECK-NEXT:    [[GEP_IDXPROM_A3:%.*]] = getelementptr inbounds i8, ptr [[TMP7]], i64 [[IDXPROMLOAD_PROM_A0]]
+; CHECK-NEXT:    [[LOAD_PROM_A3:%.*]] = load i8, ptr [[GEP_IDXPROM_A3]], align 1
+; CHECK-NEXT:    [[EXT_PROM_A3:%.*]] = sext i8 [[LOAD_PROM_A3]] to i32
+; CHECK-NEXT:    [[MUL_PROM_A3:%.*]] = mul nsw i32 [[EXT_PROM_A3]], 127
+; CHECK-NEXT:    [[ADD_PROM_A3:%.*]] = add nsw i32 [[MUL_PROM_A3]], [[ADD_A3_LCSSA]]
+; CHECK-NEXT:    [[FPEXT_PROM_A3:%.*]] = sitofp i32 [[ADD_PROM_A3]] to float
+; CHECK-NEXT:    [[GEP_B3:%.*]] = getelementptr inbounds float, ptr [[B]], i64 [[TMP6]]
+; CHECK-NEXT:    [[LOAD_B3:%.*]] = load float, ptr [[GEP_B3]], align 4
+; CHECK-NEXT:    [[MUL_B3:%.*]] = fmul float [[LOAD_B3]], [[FPEXT_PROM_A3]]
+; CHECK-NEXT:    [[GEP_D3:%.*]] = getelementptr inbounds float, ptr [[D]], i64 [[TMP6]]
+; CHECK-NEXT:    store float [[MUL_B3]], ptr [[GEP_D3]], align 4
+; CHECK-NEXT:    [[IV_NEXT2]] = add nuw nsw i64 [[INDVARS_IV164]], 4
+; CHECK-NEXT:    [[CMP_US:%.*]] = icmp ult i64 [[IV_NEXT2]], [[TMP0]]
 ; CHECK-NEXT:    br i1 [[CMP_US]], label [[ITER_CHECK]], label [[FOR_END98_LOOPEXIT:%.*]]
 ; CHECK:       for.end98.loopexit:
 ; CHECK-NEXT:    br label [[FOR_END98]]
@@ -992,10 +992,10 @@ entry:
 for.body.lr.ph:                                   ; preds = %entry
   %div = sdiv i32 %num_out, 4
   %mul = shl nsw i32 %div, 2
-  %cmp11145 = icmp sgt i32 %num_in, 0
-  %idxprom44 = sext i32 %num_in to i64
-  %0 = zext nneg i32 %mul to i64
-  br i1 %cmp11145, label %for.body.us.preheader, label %for.body.preheader
+  %cmp.num_in = icmp sgt i32 %num_in, 0
+  %ext.num_in = sext i32 %num_in to i64
+  %max_iv = zext nneg i32 %mul to i64
+  br i1 %cmp.num_in, label %for.body.us.preheader, label %for.body.preheader
 
 for.body.preheader:                               ; preds = %for.body.lr.ph
   br label %for.end98
@@ -1005,100 +1005,100 @@ for.body.us.preheader:                            ; preds = %for.body.lr.ph
   br label %for.body.us
 
 for.body.us:                                      ; preds = %for.body.us.preheader, %for.cond10.for.cond.cleanup_crit_edge.us
-  %indvars.iv164 = phi i64 [ 0, %for.body.us.preheader ], [ %indvars.iv.next165, %for.cond10.for.cond.cleanup_crit_edge.us ]
-  %arrayidx.us = getelementptr inbounds ptr, ptr %w, i64 %indvars.iv164
-  %1 = load ptr, ptr %arrayidx.us, align 8
-  %2 = or disjoint i64 %indvars.iv164, 1
-  %arrayidx3.us = getelementptr inbounds ptr, ptr %w, i64 %2
-  %3 = load ptr, ptr %arrayidx3.us, align 8
-  %4 = or disjoint i64 %indvars.iv164, 2
-  %arrayidx6.us = getelementptr inbounds ptr, ptr %w, i64 %4
-  %5 = load ptr, ptr %arrayidx6.us, align 8
-  %6 = or disjoint i64 %indvars.iv164, 3
-  %arrayidx9.us = getelementptr inbounds ptr, ptr %w, i64 %6
-  %7 = load ptr, ptr %arrayidx9.us, align 8
+  %iv2 = phi i64 [ 0, %for.body.us.preheader ], [ %iv.next2, %for.cond10.for.cond.cleanup_crit_edge.us ]
+  %gep.a0 = getelementptr inbounds ptr, ptr %a, i64 %iv2
+  %ptr.a = load ptr, ptr %gep.a0, align 8
+  %offset.1 = or disjoint i64 %iv2, 1
+  %gep.a1 = getelementptr inbounds ptr, ptr %a, i64 %offset.1
+  %ptr.a1 = load ptr, ptr %gep.a1, align 8
+  %offset.2 = or disjoint i64 %iv2, 2
+  %gep.a2 = getelementptr inbounds ptr, ptr %a, i64 %offset.2
+  %ptr.a2 = load ptr, ptr %gep.a2, align 8
+  %offset.3 = or disjoint i64 %iv2, 3
+  %gep.a3 = getelementptr inbounds ptr, ptr %a, i64 %offset.3
+  %ptr.a3 = load ptr, ptr %gep.a3, align 8
   br label %for.body12.us
 
 for.body12.us:                                    ; preds = %for.body.us, %for.body12.us
-  %indvars.iv161 = phi i64 [ 0, %for.body.us ], [ %indvars.iv.next162, %for.body12.us ]
-  %total3.0149.us = phi i32 [ 0, %for.body.us ], [ %add43.us, %for.body12.us ]
-  %total2.0148.us = phi i32 [ 0, %for.body.us ], [ %add35.us, %for.body12.us ]
-  %total1.0147.us = phi i32 [ 0, %for.body.us ], [ %add27.us, %for.body12.us ]
-  %total0.0146.us = phi i32 [ 0, %for.body.us ], [ %add19.us, %for.body12.us ]
-  %arrayidx14.us = getelementptr inbounds i8, ptr %1, i64 %indvars.iv161
-  %39 = load i8, ptr %arrayidx14.us, align 1
-  %conv.us = sext i8 %39 to i32
-  %arrayidx16.us = getelementptr inbounds i8, ptr %u, i64 %indvars.iv161
-  %40 = load i8, ptr %arrayidx16.us, align 1
-  %conv17.us = sext i8 %40 to i32
-  %mul18.us = mul nsw i32 %conv17.us, %conv.us
-  %add19.us = add nsw i32 %mul18.us, %total0.0146.us
-  %arrayidx21.us = getelementptr inbounds i8, ptr %3, i64 %indvars.iv161
-  %41 = load i8, ptr %arrayidx21.us, align 1
-  %conv22.us = sext i8 %41 to i32
-  %mul26.us = mul nsw i32 %conv22.us, %conv17.us
-  %add27.us = add nsw i32 %mul26.us, %total1.0147.us
-  %arrayidx29.us = getelementptr inbounds i8, ptr %5, i64 %indvars.iv161
-  %42 = load i8, ptr %arrayidx29.us, align 1
-  %conv30.us = sext i8 %42 to i32
-  %mul34.us = mul nsw i32 %conv30.us, %conv17.us
-  %add35.us = add nsw i32 %mul34.us, %total2.0148.us
-  %arrayidx37.us = getelementptr inbounds i8, ptr %7, i64 %indvars.iv161
-  %43 = load i8, ptr %arrayidx37.us, align 1
-  %conv38.us = sext i8 %43 to i32
-  %mul42.us = mul nsw i32 %conv38.us, %conv17.us
-  %add43.us = add nsw i32 %mul42.us, %total3.0149.us
-  %indvars.iv.next162 = add nuw nsw i64 %indvars.iv161, 1
-  %exitcond.not = icmp eq i64 %indvars.iv.next162, %wide.trip.count
+  %iv = phi i64 [ 0, %for.body.us ], [ %iv.next, %for.body12.us ]
+  %accum3 = phi i32 [ 0, %for.body.us ], [ %add.a3, %for.body12.us ]
+  %accum2 = phi i32 [ 0, %for.body.us ], [ %add.a2, %for.body12.us ]
+  %accum1 = phi i32 [ 0, %for.body.us ], [ %add.a1, %for.body12.us ]
+  %accum0 = phi i32 [ 0, %for.body.us ], [ %add.a0, %for.body12.us ]
+  %gep.idx.a0 = getelementptr inbounds i8, ptr %ptr.a, i64 %iv
+  %load.a0 = load i8, ptr %gep.idx.a0, align 1
+  %ext.a0 = sext i8 %load.a0 to i32
+  %gep.c = getelementptr inbounds i8, ptr %c, i64 %iv
+  %load.c = load i8, ptr %gep.c, align 1
+  %ext.c = sext i8 %load.c to i32
+  %mul.a0 = mul nsw i32 %ext.c, %ext.a0
+  %add.a0 = add nsw i32 %mul.a0, %accum0
+  %gep.idx.a1 = getelementptr inbounds i8, ptr %ptr.a1, i64 %iv
+  %load.a1 = load i8, ptr %gep.idx.a1, align 1
+  %ext.a1 = sext i8 %load.a1 to i32
+  %mul.a1 = mul nsw i32 %ext.a1, %ext.c
+  %add.a1 = add nsw i32 %mul.a1, %accum1
+  %gep.idx.a2 = getelementptr inbounds i8, ptr %ptr.a2, i64 %iv
+  %load.a2 = load i8, ptr %gep.idx.a2, align 1
+  %ext.a2 = sext i8 %load.a2 to i32
+  %mul.a2 = mul nsw i32 %ext.a2, %ext.c
+  %add.a2 = add nsw i32 %mul.a2, %accum2
+  %gep.idx.a3 = getelementptr inbounds i8, ptr %ptr.a3, i64 %iv
+  %load.a3 = load i8, ptr %gep.idx.a3, align 1
+  %ext.a3 = sext i8 %load.a3 to i32
+  %mul.a3 = mul nsw i32 %ext.a3, %ext.c
+  %add.a3 = add nsw i32 %mul.a3, %accum3
+  %iv.next = add nuw nsw i64 %iv, 1
+  %exitcond.not = icmp eq i64 %iv.next, %wide.trip.count
   br i1 %exitcond.not, label %for.cond10.for.cond.cleanup_crit_edge.us, label %for.body12.us
 
 for.cond10.for.cond.cleanup_crit_edge.us:         ; preds = %for.body12.us
-  %arrayidx45.us = getelementptr inbounds i8, ptr %1, i64 %idxprom44
-  %44 = load i8, ptr %arrayidx45.us, align 1
-  %conv46.us = sext i8 %44 to i32
-  %mul47.us = mul nsw i32 %conv46.us, 127
-  %add48.us = add nsw i32 %mul47.us, %add19.us
-  %conv49.us = sitofp i32 %add48.us to float
-  %arrayidx52.us = getelementptr inbounds float, ptr %scales, i64 %indvars.iv164
-  %45 = load float, ptr %arrayidx52.us, align 4
-  %mul53.us = fmul float %45, %conv49.us
-  %arrayidx56.us = getelementptr inbounds float, ptr %v, i64 %indvars.iv164
-  store float %mul53.us, ptr %arrayidx56.us, align 4
-  %arrayidx58.us = getelementptr inbounds i8, ptr %3, i64 %idxprom44
-  %46 = load i8, ptr %arrayidx58.us, align 1
-  %conv59.us = sext i8 %46 to i32
-  %mul60.us = mul nsw i32 %conv59.us, 127
-  %add61.us = add nsw i32 %mul60.us, %add27.us
-  %conv62.us = sitofp i32 %add61.us to float
-  %arrayidx65.us = getelementptr inbounds float, ptr %scales, i64 %2
-  %47 = load float, ptr %arrayidx65.us, align 4
-  %mul66.us = fmul float %47, %conv62.us
-  %arrayidx69.us = getelementptr inbounds float, ptr %v, i64 %2
-  store float %mul66.us, ptr %arrayidx69.us, align 4
-  %arrayidx71.us = getelementptr inbounds i8, ptr %5, i64 %idxprom44
-  %48 = load i8, ptr %arrayidx71.us, align 1
-  %conv72.us = sext i8 %48 to i32
-  %mul73.us = mul nsw i32 %conv72.us, 127
-  %add74.us = add nsw i32 %mul73.us, %add35.us
-  %conv75.us = sitofp i32 %add74.us to float
-  %arrayidx78.us = getelementptr inbounds float, ptr %scales, i64 %4
-  %49 = load float, ptr %arrayidx78.us, align 4
-  %mul79.us = fmul float %49, %conv75.us
-  %arrayidx82.us = getelementptr inbounds float, ptr %v, i64 %4
-  store float %mul79.us, ptr %arrayidx82.us, align 4
-  %arrayidx84.us = getelementptr inbounds i8, ptr %7, i64 %idxprom44
-  %50 = load i8, ptr %arrayidx84.us, align 1
-  %conv85.us = sext i8 %50 to i32
-  %mul86.us = mul nsw i32 %conv85.us, 127
-  %add87.us = add nsw i32 %mul86.us, %add43.us
-  %conv88.us = sitofp i32 %add87.us to float
-  %arrayidx91.us = getelementptr inbounds float, ptr %scales, i64 %6
-  %51 = load float, ptr %arrayidx91.us, align 4
-  %mul92.us = fmul float %51, %conv88.us
-  %arrayidx95.us = getelementptr inbounds float, ptr %v, i64 %6
-  store float %mul92.us, ptr %arrayidx95.us, align 4
-  %indvars.iv.next165 = add nuw nsw i64 %indvars.iv164, 4
-  %cmp.us = icmp ult i64 %indvars.iv.next165, %0
+  %gep.idxprom.a0 = getelementptr inbounds i8, ptr %ptr.a, i64 %ext.num_in
+  %load.prom.a0 = load i8, ptr %gep.idxprom.a0, align 1
+  %ext.prom.a0 = sext i8 %load.prom.a0 to i32
+  %mul.prom.a0 = mul nsw i32 %ext.prom.a0, 127
+  %add.prom.a0 = add nsw i32 %mul.prom.a0, %add.a0
+  %fpext.prom.a0 = sitofp i32 %add.prom.a0 to float
+  %gep.idxprom.b = getelementptr inbounds float, ptr %b, i64 %iv2
+  %load.b = load float, ptr %gep.idxprom.b, align 4
+  %fmul.b = fmul float %load.b, %fpext.prom.a0
+  %gep.d = getelementptr inbounds float, ptr %d, i64 %iv2
+  store float %fmul.b, ptr %gep.d, align 4
+  %gep.idxprom.a1 = getelementptr inbounds i8, ptr %ptr.a1, i64 %ext.num_in
+  %load.prom.a1 = load i8, ptr %gep.idxprom.a1, align 1
+  %ext.prom.a1 = sext i8 %load.prom.a1 to i32
+  %mul.prom.a1 = mul nsw i32 %ext.prom.a1, 127
+  %add.prom.a1 = add nsw i32 %mul.prom.a1, %add.a1
+  %fpext.prom.a1 = sitofp i32 %add.prom.a1 to float
+  %gep.b1 = getelementptr inbounds float, ptr %b, i64 %offset.1
+  %load.b1 = load float, ptr %gep.b1, align 4
+  %fmul.b1 = fmul float %load.b1, %fpext.prom.a1
+  %gep.d1 = getelementptr inbounds float, ptr %d, i64 %offset.1
+  store float %fmul.b1, ptr %gep.d1, align 4
+  %gep.idxprom.a2 = getelementptr inbounds i8, ptr %ptr.a2, i64 %ext.num_in
+  %load.prom.a2 = load i8, ptr %gep.idxprom.a2, align 1
+  %ext.prom.a2 = sext i8 %load.prom.a2 to i32
+  %mul.prom.a2 = mul nsw i32 %ext.prom.a2, 127
+  %add.prom.a2 = add nsw i32 %mul.prom.a2, %add.a2
+  %fpext.prom.a2 = sitofp i32 %add.prom.a2 to float
+  %gep.b2 = getelementptr inbounds float, ptr %b, i64 %offset.2
+  %load.b2 = load float, ptr %gep.b2, align 4
+  %fmul.b2 = fmul float %load.b2, %fpext.prom.a2
+  %gep.d2 = getelementptr inbounds float, ptr %d, i64 %offset.2
+  store float %fmul.b2, ptr %gep.d2, align 4
+  %gep.idxprom.a3 = getelementptr inbounds i8, ptr %ptr.a3, i64 %ext.num_in
+  %load.prom.a3 = load i8, ptr %gep.idxprom.a3, align 1
+  %ext.prom.a3 = sext i8 %load.prom.a3 to i32
+  %mul.prom.a3 = mul nsw i32 %ext.prom.a3, 127
+  %add.prom.a3 = add nsw i32 %mul.prom.a3, %add.a3
+  %fpext.prom.a3 = sitofp i32 %add.prom.a3 to float
+  %gep.b3 = getelementptr inbounds float, ptr %b, i64 %offset.3
+  %load.b3 = load float, ptr %gep.b3, align 4
+  %mul.b3 = fmul float %load.b3, %fpext.prom.a3
+  %gep.d3 = getelementptr inbounds float, ptr %d, i64 %offset.3
+  store float %mul.b3, ptr %gep.d3, align 4
+  %iv.next2 = add nuw nsw i64 %iv2, 4
+  %cmp.us = icmp ult i64 %iv.next2, %max_iv
   br i1 %cmp.us, label %for.body.us, label %for.end98
 
 for.end98:                                        ; preds = %for.end98.loopexit171, %for.end98.loopexit, %entry
@@ -1164,18 +1164,18 @@ for.cond.cleanup:                                 ; preds = %for.cond.cleanup.lo
   ret i32 %total.0.lcssa
 
 for.body:                                         ; preds = %for.body.preheader, %for.body
-  %indvars.iv = phi i64 [ 0, %for.body.preheader ], [ %indvars.iv.next, %for.body ]
-  %total.09 = phi i32 [ 0, %for.body.preheader ], [ %add, %for.body ]
-  %arrayidx = getelementptr inbounds i8, ptr %a, i64 %indvars.iv
-  %0 = load i8, ptr %arrayidx, align 1
-  %conv = sext i8 %0 to i32
-  %arrayidx2 = getelementptr inbounds i8, ptr %b, i64 %indvars.iv
-  %1 = load i8, ptr %arrayidx2, align 1
-  %conv3 = sext i8 %1 to i32
-  %mul = mul nsw i32 %conv3, %conv
-  %add = add nsw i32 %mul, %total.09
-  %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1
-  %exitcond.not = icmp eq i64 %indvars.iv.next, %wide.trip.count
+  %iv = phi i64 [ 0, %for.body.preheader ], [ %iv.next, %for.body ]
+  %accum = phi i32 [ 0, %for.body.preheader ], [ %add, %for.body ]
+  %gep.a = getelementptr inbounds i8, ptr %a, i64 %iv
+  %load.a = load i8, ptr %gep.a, align 1
+  %ext.a = sext i8 %load.a to i32
+  %gep.b = getelementptr inbounds i8, ptr %b, i64 %iv
+  %load.b = load i8, ptr %gep.b, align 1
+  %ext.b = sext i8 %load.b to i32
+  %mul = mul nsw i32 %ext.b, %ext.a
+  %add = add nsw i32 %mul, %accum
+  %iv.next = add nuw nsw i64 %iv, 1
+  %exitcond.not = icmp eq i64 %iv.next, %wide.trip.count
   br i1 %exitcond.not, label %for.cond.cleanup.loopexit, label %for.body
 }
 
@@ -1236,18 +1236,18 @@ for.cond.cleanup:                                 ; preds = %for.cond.cleanup.lo
   ret i32 %total.0.lcssa
 
 for.body:                                         ; preds = %for.body.preheader, %for.body
-  %indvars.iv = phi i64 [ 0, %for.body.preheader ], [ %indvars.iv.next, %for.body ]
-  %total.09 = phi i32 [ 0, %for.body.preheader ], [ %add, %for.body ]
-  %arrayidx = getelementptr inbounds nuw i8, ptr %b, i64 %indvars.iv
-  %0 = load i8, ptr %arrayidx, align 1
-  %conv = sext i8 %0 to i32
-  %arrayidx2 = getelementptr inbounds nuw i8, ptr %a, i64 %indvars.iv
-  %1 = load i8, ptr %arrayidx2, align 1
-  %conv3 = sext i8 %1 to i32
-  %mul = mul nsw i32 %conv3, %conv
-  %add = add nsw i32 %mul, %total.09
-  %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1
-  %exitcond.not = icmp eq i64 %indvars.iv.next, %wide.trip.count
+  %iv = phi i64 [ 0, %for.body.preheader ], [ %iv.next, %for.body ]
+  %accum = phi i32 [ 0, %for.body.preheader ], [ %add, %for.body ]
+  %gep.a = getelementptr inbounds nuw i8, ptr %b, i64 %iv
+  %load.a = load i8, ptr %gep.a, align 1
+  %ext.a = sext i8 %load.a to i32
+  %gep.a2 = getelementptr inbounds nuw i8, ptr %a, i64 %iv
+  %load.b = load i8, ptr %gep.a2, align 1
+  %ext.b = sext i8 %load.b to i32
+  %mul = mul nsw i32 %ext.b, %ext.a
+  %add = add nsw i32 %mul, %accum
+  %iv.next = add nuw nsw i64 %iv, 1
+  %exitcond.not = icmp eq i64 %iv.next, %wide.trip.count
   br i1 %exitcond.not, label %for.cond.cleanup.loopexit, label %for.body, !llvm.loop !7
 }
 
