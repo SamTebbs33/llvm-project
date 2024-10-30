@@ -24,6 +24,25 @@ class TargetLibraryInfo;
 struct HistogramInfo;
 class TargetTransformInfo;
 
+/// A chain of instructions that form a partial reduction.
+/// Designed to match: reduction_bin_op (bin_op (extend (A), (extend (B))),
+/// accumulator)
+struct PartialReductionChain {
+  /// The top-level binary operation that forms the reduction to a scalar
+  /// after the loop body
+  Instruction *Reduction;
+  /// The extension of each of the inner binary operation's operands
+  Instruction *ExtendA;
+  Instruction *ExtendB;
+
+  Instruction *BinOp;
+
+  /// The scaling factor between the size of the reduction type and the
+  /// (possibly extended) inputs
+  unsigned ScaleFactor;
+};
+
+
 /// Helper class to create VPRecipies from IR instructions.
 class VPRecipeBuilder {
   /// The VPlan new recipes are added to.
@@ -66,6 +85,11 @@ class VPRecipeBuilder {
   /// to add the incoming value from the backedge after all recipes have been
   /// created.
   SmallVector<VPHeaderPHIRecipe *, 4> PhisToFix;
+
+  /// The set of reduction exit instructions that will be scaled to
+  /// a smaller VF via partial reductions.
+  DenseMap<const Instruction *, PartialReductionChain>
+      ScaledReductionExitInstrs;
 
   /// Check if \p I can be widened at the start of \p Range and possibly
   /// decrease the range such that the returned value holds for the entire \p
@@ -123,6 +147,55 @@ public:
                   PredicatedScalarEvolution &PSE, VPBuilder &Builder)
       : Plan(Plan), OrigLoop(OrigLoop), TLI(TLI), TTI(TTI), Legal(Legal),
         CM(CM), PSE(PSE), Builder(Builder) {}
+
+  void addScaledReductionExitInstr(PartialReductionChain Chain) {
+    ScaledReductionExitInstrs.insert(std::make_pair(Chain.Reduction, Chain));
+  }
+
+  std::optional<PartialReductionChain>
+  getScaledReductionForInstr(const Instruction *ExitInst) {
+    auto It = ScaledReductionExitInstrs.find(ExitInst);
+    return It == ScaledReductionExitInstrs.end()
+               ? std::nullopt
+               : std::make_optional(It->second);
+  }
+
+  void removeInvalidScaledReductionExitInstrs() {
+    // A partial reduction is invalid if any of its extends are used by
+    // something that isn't another partial reduction. This is because the
+    // extends are intended to be lowered along with the reduction itself.
+
+    // Build up a set of partial reduction bin ops for efficient use checking
+    SmallSet<Instruction *, 4> PartialReductionBinOps;
+    for (auto It : ScaledReductionExitInstrs) {
+      if (It.second.BinOp)
+        PartialReductionBinOps.insert(It.second.BinOp);
+    }
+
+    auto ExtendIsOnlyUsedByPartialReductions =
+        [PartialReductionBinOps](Instruction *Extend) {
+          for (auto *Use : Extend->users()) {
+            Instruction *UseInstr = dyn_cast<Instruction>(Use);
+            if (!PartialReductionBinOps.contains(UseInstr))
+              return false;
+          }
+          return true;
+        };
+
+    // Check if each use of a chain's two extends is a partial reduction
+    // and remove those that have non-partial reduction users
+    SmallSet<Instruction *, 4> PartialReductionsToRemove;
+    for (auto It : ScaledReductionExitInstrs) {
+      PartialReductionChain Chain = It.second;
+      if (!ExtendIsOnlyUsedByPartialReductions(Chain.ExtendA) ||
+          !ExtendIsOnlyUsedByPartialReductions(Chain.ExtendB))
+        PartialReductionsToRemove.insert(Chain.Reduction);
+    }
+
+    for (auto *Instr : PartialReductionsToRemove)
+      ScaledReductionExitInstrs.erase(Instr);
+  }
+
 
   /// Create and return a widened recipe for \p I if one can be created within
   /// the given VF \p Range.

@@ -773,9 +773,7 @@ define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %w, ptr %scales, ptr %
 ; CHECK-NEXT:    [[TMP6:%.*]] = or disjoint i64 [[INDVARS_IV164]], 3
 ; CHECK-NEXT:    [[ARRAYIDX9_US:%.*]] = getelementptr inbounds ptr, ptr [[W]], i64 [[TMP6]]
 ; CHECK-NEXT:    [[TMP7:%.*]] = load ptr, ptr [[ARRAYIDX9_US]], align 8
-; CHECK-NEXT:    [[TMP8:%.*]] = call i64 @llvm.vscale.i64()
-; CHECK-NEXT:    [[TMP9:%.*]] = mul i64 [[TMP8]], 4
-; CHECK-NEXT:    [[MIN_ITERS_CHECK:%.*]] = icmp ult i64 [[WIDE_TRIP_COUNT]], [[TMP9]]
+; CHECK-NEXT:    [[MIN_ITERS_CHECK:%.*]] = icmp ult i64 [[WIDE_TRIP_COUNT]], 8
 ; CHECK-NEXT:    br i1 [[MIN_ITERS_CHECK]], label [[VEC_EPILOG_SCALAR_PH:%.*]], label [[VECTOR_MAIN_LOOP_ITER_CHECK:%.*]]
 ; CHECK:       vector.main.loop.iter.check:
 ; CHECK-NEXT:    [[MIN_ITERS_CHECK1:%.*]] = icmp ult i64 [[WIDE_TRIP_COUNT]], 16
@@ -831,9 +829,7 @@ define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %w, ptr %scales, ptr %
 ; CHECK-NEXT:    br i1 [[CMP_N]], label [[FOR_COND10_FOR_COND_CLEANUP_CRIT_EDGE_US]], label [[VEC_EPILOG_ITER_CHECK:%.*]]
 ; CHECK:       vec.epilog.iter.check:
 ; CHECK-NEXT:    [[N_VEC_REMAINING:%.*]] = sub i64 [[WIDE_TRIP_COUNT]], [[N_VEC]]
-; CHECK-NEXT:    [[TMP35:%.*]] = call i64 @llvm.vscale.i64()
-; CHECK-NEXT:    [[TMP36:%.*]] = mul i64 [[TMP35]], 4
-; CHECK-NEXT:    [[MIN_EPILOG_ITERS_CHECK:%.*]] = icmp ult i64 [[N_VEC_REMAINING]], [[TMP36]]
+; CHECK-NEXT:    [[MIN_EPILOG_ITERS_CHECK:%.*]] = icmp ult i64 [[N_VEC_REMAINING]], 8
 ; CHECK-NEXT:    br i1 [[MIN_EPILOG_ITERS_CHECK]], label [[VEC_EPILOG_SCALAR_PH]], label [[VEC_EPILOG_PH]]
 ; CHECK:       vec.epilog.ph:
 ; CHECK-NEXT:    [[BC_MERGE_RDX:%.*]] = phi i32 [ [[TMP31]], [[VEC_EPILOG_ITER_CHECK]] ], [ 0, [[VECTOR_MAIN_LOOP_ITER_CHECK]] ]
@@ -841,60 +837,56 @@ define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %w, ptr %scales, ptr %
 ; CHECK-NEXT:    [[BC_MERGE_RDX13:%.*]] = phi i32 [ [[TMP33]], [[VEC_EPILOG_ITER_CHECK]] ], [ 0, [[VECTOR_MAIN_LOOP_ITER_CHECK]] ]
 ; CHECK-NEXT:    [[BC_MERGE_RDX14:%.*]] = phi i32 [ [[TMP34]], [[VEC_EPILOG_ITER_CHECK]] ], [ 0, [[VECTOR_MAIN_LOOP_ITER_CHECK]] ]
 ; CHECK-NEXT:    [[VEC_EPILOG_RESUME_VAL:%.*]] = phi i64 [ [[N_VEC]], [[VEC_EPILOG_ITER_CHECK]] ], [ 0, [[VECTOR_MAIN_LOOP_ITER_CHECK]] ]
-; CHECK-NEXT:    [[TMP37:%.*]] = call i64 @llvm.vscale.i64()
-; CHECK-NEXT:    [[TMP38:%.*]] = mul i64 [[TMP37]], 4
-; CHECK-NEXT:    [[N_MOD_VF15:%.*]] = urem i64 [[WIDE_TRIP_COUNT]], [[TMP38]]
+; CHECK-NEXT:    [[N_MOD_VF15:%.*]] = urem i64 [[WIDE_TRIP_COUNT]], 8
 ; CHECK-NEXT:    [[N_VEC16:%.*]] = sub i64 [[WIDE_TRIP_COUNT]], [[N_MOD_VF15]]
-; CHECK-NEXT:    [[TMP39:%.*]] = call i64 @llvm.vscale.i64()
-; CHECK-NEXT:    [[TMP40:%.*]] = mul i64 [[TMP39]], 4
-; CHECK-NEXT:    [[TMP41:%.*]] = insertelement <vscale x 4 x i32> zeroinitializer, i32 [[BC_MERGE_RDX]], i32 0
-; CHECK-NEXT:    [[TMP42:%.*]] = insertelement <vscale x 4 x i32> zeroinitializer, i32 [[BC_MERGE_RDX12]], i32 0
-; CHECK-NEXT:    [[TMP43:%.*]] = insertelement <vscale x 4 x i32> zeroinitializer, i32 [[BC_MERGE_RDX13]], i32 0
-; CHECK-NEXT:    [[TMP44:%.*]] = insertelement <vscale x 4 x i32> zeroinitializer, i32 [[BC_MERGE_RDX14]], i32 0
+; CHECK-NEXT:    [[TMP37:%.*]] = insertelement <2 x i32> zeroinitializer, i32 [[BC_MERGE_RDX]], i32 0
+; CHECK-NEXT:    [[TMP38:%.*]] = insertelement <2 x i32> zeroinitializer, i32 [[BC_MERGE_RDX12]], i32 0
+; CHECK-NEXT:    [[TMP35:%.*]] = insertelement <2 x i32> zeroinitializer, i32 [[BC_MERGE_RDX13]], i32 0
+; CHECK-NEXT:    [[TMP36:%.*]] = insertelement <2 x i32> zeroinitializer, i32 [[BC_MERGE_RDX14]], i32 0
 ; CHECK-NEXT:    br label [[VEC_EPILOG_VECTOR_BODY:%.*]]
 ; CHECK:       vec.epilog.vector.body:
 ; CHECK-NEXT:    [[INDEX17:%.*]] = phi i64 [ [[VEC_EPILOG_RESUME_VAL]], [[VEC_EPILOG_PH]] ], [ [[INDEX_NEXT27:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
-; CHECK-NEXT:    [[VEC_PHI18:%.*]] = phi <vscale x 4 x i32> [ [[TMP41]], [[VEC_EPILOG_PH]] ], [ [[TMP68:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
-; CHECK-NEXT:    [[VEC_PHI19:%.*]] = phi <vscale x 4 x i32> [ [[TMP42]], [[VEC_EPILOG_PH]] ], [ [[TMP63:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
-; CHECK-NEXT:    [[VEC_PHI20:%.*]] = phi <vscale x 4 x i32> [ [[TMP43]], [[VEC_EPILOG_PH]] ], [ [[TMP58:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
-; CHECK-NEXT:    [[VEC_PHI21:%.*]] = phi <vscale x 4 x i32> [ [[TMP44]], [[VEC_EPILOG_PH]] ], [ [[TMP53:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
+; CHECK-NEXT:    [[VEC_PHI18:%.*]] = phi <2 x i32> [ [[TMP37]], [[VEC_EPILOG_PH]] ], [ [[PARTIAL_REDUCE30:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
+; CHECK-NEXT:    [[VEC_PHI19:%.*]] = phi <2 x i32> [ [[TMP38]], [[VEC_EPILOG_PH]] ], [ [[PARTIAL_REDUCE28:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
+; CHECK-NEXT:    [[VEC_PHI20:%.*]] = phi <2 x i32> [ [[TMP35]], [[VEC_EPILOG_PH]] ], [ [[PARTIAL_REDUCE26:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
+; CHECK-NEXT:    [[VEC_PHI21:%.*]] = phi <2 x i32> [ [[TMP36]], [[VEC_EPILOG_PH]] ], [ [[PARTIAL_REDUCE24:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
 ; CHECK-NEXT:    [[TMP45:%.*]] = add i64 [[INDEX17]], 0
 ; CHECK-NEXT:    [[TMP46:%.*]] = getelementptr inbounds i8, ptr [[TMP1]], i64 [[TMP45]]
 ; CHECK-NEXT:    [[TMP47:%.*]] = getelementptr inbounds i8, ptr [[TMP46]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD22:%.*]] = load <vscale x 4 x i8>, ptr [[TMP47]], align 1
-; CHECK-NEXT:    [[TMP48:%.*]] = sext <vscale x 4 x i8> [[WIDE_LOAD22]] to <vscale x 4 x i32>
+; CHECK-NEXT:    [[WIDE_LOAD22:%.*]] = load <8 x i8>, ptr [[TMP47]], align 1
+; CHECK-NEXT:    [[TMP40:%.*]] = sext <8 x i8> [[WIDE_LOAD22]] to <8 x i32>
 ; CHECK-NEXT:    [[TMP49:%.*]] = getelementptr inbounds i8, ptr [[U]], i64 [[TMP45]]
 ; CHECK-NEXT:    [[TMP50:%.*]] = getelementptr inbounds i8, ptr [[TMP49]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD23:%.*]] = load <vscale x 4 x i8>, ptr [[TMP50]], align 1
-; CHECK-NEXT:    [[TMP51:%.*]] = sext <vscale x 4 x i8> [[WIDE_LOAD23]] to <vscale x 4 x i32>
-; CHECK-NEXT:    [[TMP52:%.*]] = mul nsw <vscale x 4 x i32> [[TMP51]], [[TMP48]]
-; CHECK-NEXT:    [[TMP53]] = add <vscale x 4 x i32> [[TMP52]], [[VEC_PHI21]]
+; CHECK-NEXT:    [[WIDE_LOAD23:%.*]] = load <8 x i8>, ptr [[TMP50]], align 1
+; CHECK-NEXT:    [[TMP43:%.*]] = sext <8 x i8> [[WIDE_LOAD23]] to <8 x i32>
+; CHECK-NEXT:    [[TMP44:%.*]] = mul nsw <8 x i32> [[TMP43]], [[TMP40]]
+; CHECK-NEXT:    [[PARTIAL_REDUCE24]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI21]], <8 x i32> [[TMP44]])
 ; CHECK-NEXT:    [[TMP54:%.*]] = getelementptr inbounds i8, ptr [[TMP3]], i64 [[TMP45]]
 ; CHECK-NEXT:    [[TMP55:%.*]] = getelementptr inbounds i8, ptr [[TMP54]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD24:%.*]] = load <vscale x 4 x i8>, ptr [[TMP55]], align 1
-; CHECK-NEXT:    [[TMP56:%.*]] = sext <vscale x 4 x i8> [[WIDE_LOAD24]] to <vscale x 4 x i32>
-; CHECK-NEXT:    [[TMP57:%.*]] = mul nsw <vscale x 4 x i32> [[TMP56]], [[TMP51]]
-; CHECK-NEXT:    [[TMP58]] = add <vscale x 4 x i32> [[TMP57]], [[VEC_PHI20]]
+; CHECK-NEXT:    [[WIDE_LOAD25:%.*]] = load <8 x i8>, ptr [[TMP55]], align 1
+; CHECK-NEXT:    [[TMP53:%.*]] = sext <8 x i8> [[WIDE_LOAD25]] to <8 x i32>
+; CHECK-NEXT:    [[TMP48:%.*]] = mul nsw <8 x i32> [[TMP53]], [[TMP43]]
+; CHECK-NEXT:    [[PARTIAL_REDUCE26]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI20]], <8 x i32> [[TMP48]])
 ; CHECK-NEXT:    [[TMP59:%.*]] = getelementptr inbounds i8, ptr [[TMP5]], i64 [[TMP45]]
 ; CHECK-NEXT:    [[TMP60:%.*]] = getelementptr inbounds i8, ptr [[TMP59]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD25:%.*]] = load <vscale x 4 x i8>, ptr [[TMP60]], align 1
-; CHECK-NEXT:    [[TMP61:%.*]] = sext <vscale x 4 x i8> [[WIDE_LOAD25]] to <vscale x 4 x i32>
-; CHECK-NEXT:    [[TMP62:%.*]] = mul nsw <vscale x 4 x i32> [[TMP61]], [[TMP51]]
-; CHECK-NEXT:    [[TMP63]] = add <vscale x 4 x i32> [[TMP62]], [[VEC_PHI19]]
+; CHECK-NEXT:    [[WIDE_LOAD27:%.*]] = load <8 x i8>, ptr [[TMP60]], align 1
+; CHECK-NEXT:    [[TMP51:%.*]] = sext <8 x i8> [[WIDE_LOAD27]] to <8 x i32>
+; CHECK-NEXT:    [[TMP52:%.*]] = mul nsw <8 x i32> [[TMP51]], [[TMP43]]
+; CHECK-NEXT:    [[PARTIAL_REDUCE28]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI19]], <8 x i32> [[TMP52]])
 ; CHECK-NEXT:    [[TMP64:%.*]] = getelementptr inbounds i8, ptr [[TMP7]], i64 [[TMP45]]
 ; CHECK-NEXT:    [[TMP65:%.*]] = getelementptr inbounds i8, ptr [[TMP64]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD26:%.*]] = load <vscale x 4 x i8>, ptr [[TMP65]], align 1
-; CHECK-NEXT:    [[TMP66:%.*]] = sext <vscale x 4 x i8> [[WIDE_LOAD26]] to <vscale x 4 x i32>
-; CHECK-NEXT:    [[TMP67:%.*]] = mul nsw <vscale x 4 x i32> [[TMP66]], [[TMP51]]
-; CHECK-NEXT:    [[TMP68]] = add <vscale x 4 x i32> [[TMP67]], [[VEC_PHI18]]
-; CHECK-NEXT:    [[INDEX_NEXT27]] = add nuw i64 [[INDEX17]], [[TMP40]]
+; CHECK-NEXT:    [[WIDE_LOAD29:%.*]] = load <8 x i8>, ptr [[TMP65]], align 1
+; CHECK-NEXT:    [[TMP57:%.*]] = sext <8 x i8> [[WIDE_LOAD29]] to <8 x i32>
+; CHECK-NEXT:    [[TMP56:%.*]] = mul nsw <8 x i32> [[TMP57]], [[TMP43]]
+; CHECK-NEXT:    [[PARTIAL_REDUCE30]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI18]], <8 x i32> [[TMP56]])
+; CHECK-NEXT:    [[INDEX_NEXT27]] = add nuw i64 [[INDEX17]], 8
 ; CHECK-NEXT:    [[TMP69:%.*]] = icmp eq i64 [[INDEX_NEXT27]], [[N_VEC16]]
 ; CHECK-NEXT:    br i1 [[TMP69]], label [[VEC_EPILOG_MIDDLE_BLOCK:%.*]], label [[VEC_EPILOG_VECTOR_BODY]], !llvm.loop [[LOOP13:![0-9]+]]
 ; CHECK:       vec.epilog.middle.block:
-; CHECK-NEXT:    [[TMP70:%.*]] = call i32 @llvm.vector.reduce.add.nxv4i32(<vscale x 4 x i32> [[TMP68]])
-; CHECK-NEXT:    [[TMP71:%.*]] = call i32 @llvm.vector.reduce.add.nxv4i32(<vscale x 4 x i32> [[TMP63]])
-; CHECK-NEXT:    [[TMP72:%.*]] = call i32 @llvm.vector.reduce.add.nxv4i32(<vscale x 4 x i32> [[TMP58]])
-; CHECK-NEXT:    [[TMP73:%.*]] = call i32 @llvm.vector.reduce.add.nxv4i32(<vscale x 4 x i32> [[TMP53]])
+; CHECK-NEXT:    [[TMP70:%.*]] = call i32 @llvm.vector.reduce.add.v2i32(<2 x i32> [[PARTIAL_REDUCE30]])
+; CHECK-NEXT:    [[TMP71:%.*]] = call i32 @llvm.vector.reduce.add.v2i32(<2 x i32> [[PARTIAL_REDUCE28]])
+; CHECK-NEXT:    [[TMP72:%.*]] = call i32 @llvm.vector.reduce.add.v2i32(<2 x i32> [[PARTIAL_REDUCE26]])
+; CHECK-NEXT:    [[TMP73:%.*]] = call i32 @llvm.vector.reduce.add.v2i32(<2 x i32> [[PARTIAL_REDUCE24]])
 ; CHECK-NEXT:    [[CMP_N28:%.*]] = icmp eq i64 [[WIDE_TRIP_COUNT]], [[N_VEC16]]
 ; CHECK-NEXT:    br i1 [[CMP_N28]], label [[FOR_COND10_FOR_COND_CLEANUP_CRIT_EDGE_US]], label [[VEC_EPILOG_SCALAR_PH]]
 ; CHECK:       vec.epilog.scalar.ph:

@@ -1568,42 +1568,6 @@ public:
   /// trivially hoistable.
   bool shouldConsiderInvariant(Value *Op);
 
-  /// A chain of instructions that form a partial reduction.
-  /// Designed to match: reduction_bin_op (bin_op (extend (A), (extend (B))),
-  /// accumulator)
-  struct PartialReductionChain {
-    /// The top-level binary operation that forms the reduction to a scalar
-    /// after the loop body
-    Instruction *Reduction;
-    /// The inner binary operation that forms the reduction to a vector value
-    /// within the loop body
-    Instruction *BinOp;
-    /// The extension of each of the inner binary operation's operands
-    Instruction *ExtendA;
-    Instruction *ExtendB;
-
-    /// The accumulator that is reduced to a scalar after the loop body
-    Value *Accumulator;
-
-    /// The scaling factor between the size of the reduction type and the
-    /// (possibly extended) inputs
-    unsigned ScaleFactor;
-  };
-
-  using PartialReductionList = DenseMap<Instruction *, PartialReductionChain>;
-
-  PartialReductionList getPartialReductionChains() {
-    return PartialReductionChains;
-  }
-
-  std::optional<PartialReductionChain>
-  getInstructionsPartialReduction(Instruction *I) const {
-    auto PairIt = PartialReductionChains.find(I);
-    if (PairIt == PartialReductionChains.end())
-      return std::nullopt;
-    return PairIt->second;
-  }
-
 private:
   unsigned NumPredStores = 0;
 
@@ -8897,7 +8861,7 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
 
       // If the PHI is used by a partial reduction, set the scale factor
       std::optional<PartialReductionChain> Chain =
-          Plan.getScaledReductionForInstr(RdxDesc.getLoopExitInstr());
+          getScaledReductionForInstr(RdxDesc.getLoopExitInstr());
       unsigned ScaleFactor = Chain ? Chain->ScaleFactor : 1;
       PhiRecipe = new VPReductionPHIRecipe(
           Phi, RdxDesc, *StartV, CM.isInLoopReduction(Phi),
@@ -8933,7 +8897,7 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
   if (isa<LoadInst>(Instr) || isa<StoreInst>(Instr))
     return tryToWidenMemory(Instr, Operands, Range);
 
-  if (Plan.getScaledReductionForInstr(Instr))
+  if (getScaledReductionForInstr(Instr))
     return tryToCreatePartialReduction(Instr, Operands);
 
   if (!shouldWiden(Instr, Range))
@@ -8970,7 +8934,7 @@ VPRecipeBuilder::tryToCreatePartialReduction(Instruction *Reduction,
 
   SmallVector<VPValue *, 2> OrderedOperands = {BinOp, Phi};
   return new VPPartialReductionRecipe(
-      *Reduction, make_range(OrderedOperands.begin(), OrderedOperands.end()));
+      Reduction->getOpcode(), make_range(OrderedOperands.begin(), OrderedOperands.end()));
 }
 
 void LoopVectorizationPlanner::buildVPlansWithVPRecipes(ElementCount MinVF,
@@ -9330,8 +9294,8 @@ LoopVectorizationPlanner::tryToBuildVPlanWithVPRecipes(VFRange &Range) {
   for (const auto &[Phi, RdxDesc] : Legal->getReductionVars())
     if (std::optional<PartialReductionChain> Chain =
         getScaledReduction(Phi, RdxDesc, &TTI, Range, CM))
-      Plan->addScaledReductionExitInstr(*Chain);
-  Plan->removeInvalidScaledReductionExitInstrs();
+      RecipeBuilder.addScaledReductionExitInstr(*Chain);
+  RecipeBuilder.removeInvalidScaledReductionExitInstrs();
 
   auto *MiddleVPBB = Plan->getMiddleBlock();
   VPBasicBlock::iterator MBIP = MiddleVPBB->getFirstNonPhi();
