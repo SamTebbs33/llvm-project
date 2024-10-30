@@ -319,7 +319,6 @@ void VPPartialReductionRecipe::execute(VPTransformState &State) {
       RetTy, Intrinsic::experimental_vector_partial_reduce_add,
       {PhiVal, BinOpVal}, nullptr, Twine("partial.reduce"));
 
-  // Use this vector value for all users of the original instruction.
   State.set(this, V);
   State.addMetadata(V, dyn_cast_or_null<Instruction>(getUnderlyingValue()));
 }
