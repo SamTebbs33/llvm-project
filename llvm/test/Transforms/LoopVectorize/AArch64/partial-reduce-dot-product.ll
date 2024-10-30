@@ -742,9 +742,9 @@ for.body:                                         ; preds = %for.body, %entry
   br i1 %exitcond.not, label %for.cond.cleanup.loopexit, label %for.body
 }
 
-define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %a, ptr %b, ptr %c, ptr %d) #0 {
-; CHECK-LABEL: define void @dotp_unrolled(
-; CHECK-SAME: i32 [[NUM_OUT:%.*]], i32 [[NUM_IN:%.*]], ptr [[A:%.*]], ptr [[B:%.*]], ptr [[C:%.*]], ptr [[D:%.*]]) #[[ATTR0:[0-9]+]] {
+define i32 @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %a, ptr %b) #0 {
+; CHECK-LABEL: define i32 @dotp_unrolled(
+; CHECK-SAME: i32 [[NUM_OUT:%.*]], i32 [[NUM_IN:%.*]], ptr [[A:%.*]], ptr [[B:%.*]]) #[[ATTR0:[0-9]+]] {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[CMP154:%.*]] = icmp sgt i32 [[NUM_OUT]], 3
 ; CHECK-NEXT:    br i1 [[CMP154]], label [[FOR_BODY_LR_PH:%.*]], label [[FOR_END98:%.*]]
@@ -754,33 +754,19 @@ define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %a, ptr %b, ptr %c, pt
 ; CHECK-NEXT:    [[CMP111LOAD_B:%.*]] = icmp sgt i32 [[NUM_IN]], 0
 ; CHECK-NEXT:    [[IDXPROMLOAD_PROM_A0:%.*]] = sext i32 [[NUM_IN]] to i64
 ; CHECK-NEXT:    [[TMP0:%.*]] = zext nneg i32 [[MUL]] to i64
-; CHECK-NEXT:    br i1 [[CMP111LOAD_B]], label [[FOR_BODY_US_PREHEADER:%.*]], label [[FOR_BODY_PREHEADER:%.*]]
-; CHECK:       for.body.preheader:
-; CHECK-NEXT:    br label [[FOR_END98]]
-; CHECK:       for.body.us.preheader:
-; CHECK-NEXT:    [[WIDE_TRIP_COUNT:%.*]] = zext nneg i32 [[NUM_IN]] to i64
-; CHECK-NEXT:    br label [[ITER_CHECK:%.*]]
+; CHECK-NEXT:    br i1 [[CMP111LOAD_B]], label [[ITER_CHECK:%.*]], label [[FOR_END98]]
 ; CHECK:       iter.check:
-; CHECK-NEXT:    [[INDVARS_IV164:%.*]] = phi i64 [ 0, [[FOR_BODY_US_PREHEADER]] ], [ [[IV_NEXT2:%.*]], [[FOR_COND10_FOR_COND_CLEANUP_CRIT_EDGE_US:%.*]] ]
-; CHECK-NEXT:    [[GEP_A0:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[INDVARS_IV164]]
-; CHECK-NEXT:    [[TMP1:%.*]] = load ptr, ptr [[GEP_A0]], align 8
-; CHECK-NEXT:    [[TMP2:%.*]] = or disjoint i64 [[INDVARS_IV164]], 1
-; CHECK-NEXT:    [[GEP_A1:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP2]]
-; CHECK-NEXT:    [[TMP3:%.*]] = load ptr, ptr [[GEP_A1]], align 8
-; CHECK-NEXT:    [[TMP4:%.*]] = or disjoint i64 [[INDVARS_IV164]], 2
-; CHECK-NEXT:    [[GEP_A2:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP4]]
-; CHECK-NEXT:    [[TMP5:%.*]] = load ptr, ptr [[GEP_A2]], align 8
-; CHECK-NEXT:    [[TMP6:%.*]] = or disjoint i64 [[INDVARS_IV164]], 3
-; CHECK-NEXT:    [[GEP_A3:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP6]]
-; CHECK-NEXT:    [[TMP7:%.*]] = load ptr, ptr [[GEP_A3]], align 8
-; CHECK-NEXT:    [[MIN_ITERS_CHECK:%.*]] = icmp ult i64 [[WIDE_TRIP_COUNT]], 8
+; CHECK-NEXT:    [[WIDE_TRIP_COUNT:%.*]] = zext nneg i32 [[NUM_IN]] to i64
+; CHECK-NEXT:    [[MIN_ITERS_CHECK:%.*]] = icmp ule i64 [[WIDE_TRIP_COUNT]], 8
 ; CHECK-NEXT:    br i1 [[MIN_ITERS_CHECK]], label [[VEC_EPILOG_SCALAR_PH:%.*]], label [[VECTOR_MAIN_LOOP_ITER_CHECK:%.*]]
 ; CHECK:       vector.main.loop.iter.check:
-; CHECK-NEXT:    [[MIN_ITERS_CHECK1:%.*]] = icmp ult i64 [[WIDE_TRIP_COUNT]], 16
+; CHECK-NEXT:    [[MIN_ITERS_CHECK1:%.*]] = icmp ule i64 [[WIDE_TRIP_COUNT]], 16
 ; CHECK-NEXT:    br i1 [[MIN_ITERS_CHECK1]], label [[VEC_EPILOG_PH:%.*]], label [[VECTOR_PH:%.*]]
 ; CHECK:       vector.ph:
 ; CHECK-NEXT:    [[N_MOD_VF:%.*]] = urem i64 [[WIDE_TRIP_COUNT]], 16
-; CHECK-NEXT:    [[N_VEC:%.*]] = sub i64 [[WIDE_TRIP_COUNT]], [[N_MOD_VF]]
+; CHECK-NEXT:    [[TMP2:%.*]] = icmp eq i64 [[N_MOD_VF]], 0
+; CHECK-NEXT:    [[TMP1:%.*]] = select i1 [[TMP2]], i64 16, i64 [[N_MOD_VF]]
+; CHECK-NEXT:    [[N_VEC:%.*]] = sub i64 [[WIDE_TRIP_COUNT]], [[TMP1]]
 ; CHECK-NEXT:    br label [[VECTOR_BODY:%.*]]
 ; CHECK:       vector.body:
 ; CHECK-NEXT:    [[INDEX:%.*]] = phi i64 [ 0, [[VECTOR_PH]] ], [ [[INDEX_NEXT:%.*]], [[VECTOR_BODY]] ]
@@ -789,31 +775,34 @@ define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %a, ptr %b, ptr %c, pt
 ; CHECK-NEXT:    [[VEC_PHI3:%.*]] = phi <4 x i32> [ zeroinitializer, [[VECTOR_PH]] ], [ [[PARTIAL_REDUCE7:%.*]], [[VECTOR_BODY]] ]
 ; CHECK-NEXT:    [[VEC_PHI4:%.*]] = phi <4 x i32> [ zeroinitializer, [[VECTOR_PH]] ], [ [[PARTIAL_REDUCE:%.*]], [[VECTOR_BODY]] ]
 ; CHECK-NEXT:    [[TMP10:%.*]] = add i64 [[INDEX]], 0
-; CHECK-NEXT:    [[TMP11:%.*]] = getelementptr inbounds i8, ptr [[TMP1]], i64 [[TMP10]]
-; CHECK-NEXT:    [[TMP12:%.*]] = getelementptr inbounds i8, ptr [[TMP11]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD:%.*]] = load <16 x i8>, ptr [[TMP12]], align 1
+; CHECK-NEXT:    [[TMP3:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP10]]
+; CHECK-NEXT:    [[TMP4:%.*]] = or disjoint i64 [[TMP10]], 1
+; CHECK-NEXT:    [[TMP5:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP4]]
+; CHECK-NEXT:    [[TMP6:%.*]] = or disjoint i64 [[TMP10]], 2
+; CHECK-NEXT:    [[TMP7:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP6]]
+; CHECK-NEXT:    [[TMP8:%.*]] = or disjoint i64 [[TMP10]], 3
+; CHECK-NEXT:    [[TMP9:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP8]]
+; CHECK-NEXT:    [[WIDE_VEC:%.*]] = load <128 x i8>, ptr [[TMP3]], align 1
+; CHECK-NEXT:    [[WIDE_LOAD:%.*]] = shufflevector <128 x i8> [[WIDE_VEC]], <128 x i8> poison, <16 x i32> <i32 0, i32 8, i32 16, i32 24, i32 32, i32 40, i32 48, i32 56, i32 64, i32 72, i32 80, i32 88, i32 96, i32 104, i32 112, i32 120>
 ; CHECK-NEXT:    [[TMP13:%.*]] = sext <16 x i8> [[WIDE_LOAD]] to <16 x i32>
-; CHECK-NEXT:    [[TMP14:%.*]] = getelementptr inbounds i8, ptr [[C]], i64 [[TMP10]]
+; CHECK-NEXT:    [[TMP14:%.*]] = getelementptr inbounds i8, ptr [[B]], i64 [[TMP10]]
 ; CHECK-NEXT:    [[TMP15:%.*]] = getelementptr inbounds i8, ptr [[TMP14]], i32 0
 ; CHECK-NEXT:    [[WIDE_LOAD5:%.*]] = load <16 x i8>, ptr [[TMP15]], align 1
 ; CHECK-NEXT:    [[TMP16:%.*]] = sext <16 x i8> [[WIDE_LOAD5]] to <16 x i32>
 ; CHECK-NEXT:    [[TMP17:%.*]] = mul nsw <16 x i32> [[TMP16]], [[TMP13]]
 ; CHECK-NEXT:    [[PARTIAL_REDUCE]] = call <4 x i32> @llvm.experimental.vector.partial.reduce.add.v4i32.v16i32(<4 x i32> [[VEC_PHI4]], <16 x i32> [[TMP17]])
-; CHECK-NEXT:    [[TMP18:%.*]] = getelementptr inbounds i8, ptr [[TMP3]], i64 [[TMP10]]
-; CHECK-NEXT:    [[TMP19:%.*]] = getelementptr inbounds i8, ptr [[TMP18]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD6:%.*]] = load <16 x i8>, ptr [[TMP19]], align 1
+; CHECK-NEXT:    [[WIDE_VEC5:%.*]] = load <128 x i8>, ptr [[TMP5]], align 1
+; CHECK-NEXT:    [[WIDE_LOAD6:%.*]] = shufflevector <128 x i8> [[WIDE_VEC5]], <128 x i8> poison, <16 x i32> <i32 0, i32 8, i32 16, i32 24, i32 32, i32 40, i32 48, i32 56, i32 64, i32 72, i32 80, i32 88, i32 96, i32 104, i32 112, i32 120>
 ; CHECK-NEXT:    [[TMP20:%.*]] = sext <16 x i8> [[WIDE_LOAD6]] to <16 x i32>
 ; CHECK-NEXT:    [[TMP21:%.*]] = mul nsw <16 x i32> [[TMP20]], [[TMP16]]
 ; CHECK-NEXT:    [[PARTIAL_REDUCE7]] = call <4 x i32> @llvm.experimental.vector.partial.reduce.add.v4i32.v16i32(<4 x i32> [[VEC_PHI3]], <16 x i32> [[TMP21]])
-; CHECK-NEXT:    [[TMP22:%.*]] = getelementptr inbounds i8, ptr [[TMP5]], i64 [[TMP10]]
-; CHECK-NEXT:    [[TMP23:%.*]] = getelementptr inbounds i8, ptr [[TMP22]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD8:%.*]] = load <16 x i8>, ptr [[TMP23]], align 1
+; CHECK-NEXT:    [[WIDE_VEC8:%.*]] = load <128 x i8>, ptr [[TMP7]], align 1
+; CHECK-NEXT:    [[WIDE_LOAD8:%.*]] = shufflevector <128 x i8> [[WIDE_VEC8]], <128 x i8> poison, <16 x i32> <i32 0, i32 8, i32 16, i32 24, i32 32, i32 40, i32 48, i32 56, i32 64, i32 72, i32 80, i32 88, i32 96, i32 104, i32 112, i32 120>
 ; CHECK-NEXT:    [[TMP24:%.*]] = sext <16 x i8> [[WIDE_LOAD8]] to <16 x i32>
 ; CHECK-NEXT:    [[TMP25:%.*]] = mul nsw <16 x i32> [[TMP24]], [[TMP16]]
 ; CHECK-NEXT:    [[PARTIAL_REDUCE9]] = call <4 x i32> @llvm.experimental.vector.partial.reduce.add.v4i32.v16i32(<4 x i32> [[VEC_PHI2]], <16 x i32> [[TMP25]])
-; CHECK-NEXT:    [[TMP26:%.*]] = getelementptr inbounds i8, ptr [[TMP7]], i64 [[TMP10]]
-; CHECK-NEXT:    [[TMP27:%.*]] = getelementptr inbounds i8, ptr [[TMP26]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD10:%.*]] = load <16 x i8>, ptr [[TMP27]], align 1
+; CHECK-NEXT:    [[WIDE_VEC11:%.*]] = load <128 x i8>, ptr [[TMP9]], align 1
+; CHECK-NEXT:    [[WIDE_LOAD10:%.*]] = shufflevector <128 x i8> [[WIDE_VEC11]], <128 x i8> poison, <16 x i32> <i32 0, i32 8, i32 16, i32 24, i32 32, i32 40, i32 48, i32 56, i32 64, i32 72, i32 80, i32 88, i32 96, i32 104, i32 112, i32 120>
 ; CHECK-NEXT:    [[TMP28:%.*]] = sext <16 x i8> [[WIDE_LOAD10]] to <16 x i32>
 ; CHECK-NEXT:    [[TMP29:%.*]] = mul nsw <16 x i32> [[TMP28]], [[TMP16]]
 ; CHECK-NEXT:    [[PARTIAL_REDUCE11]] = call <4 x i32> @llvm.experimental.vector.partial.reduce.add.v4i32.v16i32(<4 x i32> [[VEC_PHI]], <16 x i32> [[TMP29]])
@@ -825,11 +814,10 @@ define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %a, ptr %b, ptr %c, pt
 ; CHECK-NEXT:    [[TMP32:%.*]] = call i32 @llvm.vector.reduce.add.v4i32(<4 x i32> [[PARTIAL_REDUCE9]])
 ; CHECK-NEXT:    [[TMP33:%.*]] = call i32 @llvm.vector.reduce.add.v4i32(<4 x i32> [[PARTIAL_REDUCE7]])
 ; CHECK-NEXT:    [[TMP34:%.*]] = call i32 @llvm.vector.reduce.add.v4i32(<4 x i32> [[PARTIAL_REDUCE]])
-; CHECK-NEXT:    [[CMP_N:%.*]] = icmp eq i64 [[WIDE_TRIP_COUNT]], [[N_VEC]]
-; CHECK-NEXT:    br i1 [[CMP_N]], label [[FOR_COND10_FOR_COND_CLEANUP_CRIT_EDGE_US]], label [[VEC_EPILOG_ITER_CHECK:%.*]]
+; CHECK-NEXT:    br label [[VEC_EPILOG_ITER_CHECK:%.*]]
 ; CHECK:       vec.epilog.iter.check:
 ; CHECK-NEXT:    [[N_VEC_REMAINING:%.*]] = sub i64 [[WIDE_TRIP_COUNT]], [[N_VEC]]
-; CHECK-NEXT:    [[MIN_EPILOG_ITERS_CHECK:%.*]] = icmp ult i64 [[N_VEC_REMAINING]], 8
+; CHECK-NEXT:    [[MIN_EPILOG_ITERS_CHECK:%.*]] = icmp ule i64 [[N_VEC_REMAINING]], 8
 ; CHECK-NEXT:    br i1 [[MIN_EPILOG_ITERS_CHECK]], label [[VEC_EPILOG_SCALAR_PH]], label [[VEC_EPILOG_PH]]
 ; CHECK:       vec.epilog.ph:
 ; CHECK-NEXT:    [[BC_MERGE_RDX:%.*]] = phi i32 [ [[TMP31]], [[VEC_EPILOG_ITER_CHECK]] ], [ 0, [[VECTOR_MAIN_LOOP_ITER_CHECK]] ]
@@ -838,7 +826,9 @@ define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %a, ptr %b, ptr %c, pt
 ; CHECK-NEXT:    [[BC_MERGE_RDX14:%.*]] = phi i32 [ [[TMP34]], [[VEC_EPILOG_ITER_CHECK]] ], [ 0, [[VECTOR_MAIN_LOOP_ITER_CHECK]] ]
 ; CHECK-NEXT:    [[VEC_EPILOG_RESUME_VAL:%.*]] = phi i64 [ [[N_VEC]], [[VEC_EPILOG_ITER_CHECK]] ], [ 0, [[VECTOR_MAIN_LOOP_ITER_CHECK]] ]
 ; CHECK-NEXT:    [[N_MOD_VF15:%.*]] = urem i64 [[WIDE_TRIP_COUNT]], 8
-; CHECK-NEXT:    [[N_VEC16:%.*]] = sub i64 [[WIDE_TRIP_COUNT]], [[N_MOD_VF15]]
+; CHECK-NEXT:    [[TMP26:%.*]] = icmp eq i64 [[N_MOD_VF15]], 0
+; CHECK-NEXT:    [[TMP27:%.*]] = select i1 [[TMP26]], i64 8, i64 [[N_MOD_VF15]]
+; CHECK-NEXT:    [[N_VEC16:%.*]] = sub i64 [[WIDE_TRIP_COUNT]], [[TMP27]]
 ; CHECK-NEXT:    [[TMP37:%.*]] = insertelement <2 x i32> zeroinitializer, i32 [[BC_MERGE_RDX]], i32 0
 ; CHECK-NEXT:    [[TMP38:%.*]] = insertelement <2 x i32> zeroinitializer, i32 [[BC_MERGE_RDX12]], i32 0
 ; CHECK-NEXT:    [[TMP35:%.*]] = insertelement <2 x i32> zeroinitializer, i32 [[BC_MERGE_RDX13]], i32 0
@@ -851,31 +841,34 @@ define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %a, ptr %b, ptr %c, pt
 ; CHECK-NEXT:    [[VEC_PHI20:%.*]] = phi <2 x i32> [ [[TMP35]], [[VEC_EPILOG_PH]] ], [ [[PARTIAL_REDUCE26:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
 ; CHECK-NEXT:    [[VEC_PHI21:%.*]] = phi <2 x i32> [ [[TMP36]], [[VEC_EPILOG_PH]] ], [ [[PARTIAL_REDUCE24:%.*]], [[VEC_EPILOG_VECTOR_BODY]] ]
 ; CHECK-NEXT:    [[TMP39:%.*]] = add i64 [[INDEX17]], 0
-; CHECK-NEXT:    [[TMP40:%.*]] = getelementptr inbounds i8, ptr [[TMP1]], i64 [[TMP39]]
-; CHECK-NEXT:    [[TMP47:%.*]] = getelementptr inbounds i8, ptr [[TMP40]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD22:%.*]] = load <8 x i8>, ptr [[TMP47]], align 1
+; CHECK-NEXT:    [[TMP40:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP39]]
+; CHECK-NEXT:    [[TMP44:%.*]] = or disjoint i64 [[TMP39]], 1
+; CHECK-NEXT:    [[TMP45:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP44]]
+; CHECK-NEXT:    [[TMP46:%.*]] = or disjoint i64 [[TMP39]], 2
+; CHECK-NEXT:    [[TMP47:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP46]]
+; CHECK-NEXT:    [[TMP54:%.*]] = or disjoint i64 [[TMP39]], 3
+; CHECK-NEXT:    [[TMP55:%.*]] = getelementptr inbounds ptr, ptr [[A]], i64 [[TMP54]]
+; CHECK-NEXT:    [[WIDE_VEC24:%.*]] = load <64 x i8>, ptr [[TMP40]], align 1
+; CHECK-NEXT:    [[WIDE_LOAD22:%.*]] = shufflevector <64 x i8> [[WIDE_VEC24]], <64 x i8> poison, <8 x i32> <i32 0, i32 8, i32 16, i32 24, i32 32, i32 40, i32 48, i32 56>
 ; CHECK-NEXT:    [[TMP41:%.*]] = sext <8 x i8> [[WIDE_LOAD22]] to <8 x i32>
-; CHECK-NEXT:    [[TMP49:%.*]] = getelementptr inbounds i8, ptr [[C]], i64 [[TMP39]]
+; CHECK-NEXT:    [[TMP49:%.*]] = getelementptr inbounds i8, ptr [[B]], i64 [[TMP39]]
 ; CHECK-NEXT:    [[TMP50:%.*]] = getelementptr inbounds i8, ptr [[TMP49]], i32 0
 ; CHECK-NEXT:    [[WIDE_LOAD23:%.*]] = load <8 x i8>, ptr [[TMP50]], align 1
 ; CHECK-NEXT:    [[TMP42:%.*]] = sext <8 x i8> [[WIDE_LOAD23]] to <8 x i32>
 ; CHECK-NEXT:    [[TMP43:%.*]] = mul nsw <8 x i32> [[TMP42]], [[TMP41]]
 ; CHECK-NEXT:    [[PARTIAL_REDUCE24]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI21]], <8 x i32> [[TMP43]])
-; CHECK-NEXT:    [[TMP54:%.*]] = getelementptr inbounds i8, ptr [[TMP3]], i64 [[TMP39]]
-; CHECK-NEXT:    [[TMP55:%.*]] = getelementptr inbounds i8, ptr [[TMP54]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD25:%.*]] = load <8 x i8>, ptr [[TMP55]], align 1
+; CHECK-NEXT:    [[WIDE_VEC28:%.*]] = load <64 x i8>, ptr [[TMP45]], align 1
+; CHECK-NEXT:    [[WIDE_LOAD25:%.*]] = shufflevector <64 x i8> [[WIDE_VEC28]], <64 x i8> poison, <8 x i32> <i32 0, i32 8, i32 16, i32 24, i32 32, i32 40, i32 48, i32 56>
 ; CHECK-NEXT:    [[TMP53:%.*]] = sext <8 x i8> [[WIDE_LOAD25]] to <8 x i32>
 ; CHECK-NEXT:    [[TMP48:%.*]] = mul nsw <8 x i32> [[TMP53]], [[TMP42]]
 ; CHECK-NEXT:    [[PARTIAL_REDUCE26]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI20]], <8 x i32> [[TMP48]])
-; CHECK-NEXT:    [[TMP59:%.*]] = getelementptr inbounds i8, ptr [[TMP5]], i64 [[TMP39]]
-; CHECK-NEXT:    [[TMP60:%.*]] = getelementptr inbounds i8, ptr [[TMP59]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD27:%.*]] = load <8 x i8>, ptr [[TMP60]], align 1
+; CHECK-NEXT:    [[WIDE_VEC31:%.*]] = load <64 x i8>, ptr [[TMP47]], align 1
+; CHECK-NEXT:    [[WIDE_LOAD27:%.*]] = shufflevector <64 x i8> [[WIDE_VEC31]], <64 x i8> poison, <8 x i32> <i32 0, i32 8, i32 16, i32 24, i32 32, i32 40, i32 48, i32 56>
 ; CHECK-NEXT:    [[TMP51:%.*]] = sext <8 x i8> [[WIDE_LOAD27]] to <8 x i32>
 ; CHECK-NEXT:    [[TMP52:%.*]] = mul nsw <8 x i32> [[TMP51]], [[TMP42]]
 ; CHECK-NEXT:    [[PARTIAL_REDUCE28]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI19]], <8 x i32> [[TMP52]])
-; CHECK-NEXT:    [[TMP64:%.*]] = getelementptr inbounds i8, ptr [[TMP7]], i64 [[TMP39]]
-; CHECK-NEXT:    [[TMP65:%.*]] = getelementptr inbounds i8, ptr [[TMP64]], i32 0
-; CHECK-NEXT:    [[WIDE_LOAD29:%.*]] = load <8 x i8>, ptr [[TMP65]], align 1
+; CHECK-NEXT:    [[WIDE_VEC34:%.*]] = load <64 x i8>, ptr [[TMP55]], align 1
+; CHECK-NEXT:    [[WIDE_LOAD29:%.*]] = shufflevector <64 x i8> [[WIDE_VEC34]], <64 x i8> poison, <8 x i32> <i32 0, i32 8, i32 16, i32 24, i32 32, i32 40, i32 48, i32 56>
 ; CHECK-NEXT:    [[TMP57:%.*]] = sext <8 x i8> [[WIDE_LOAD29]] to <8 x i32>
 ; CHECK-NEXT:    [[TMP56:%.*]] = mul nsw <8 x i32> [[TMP57]], [[TMP42]]
 ; CHECK-NEXT:    [[PARTIAL_REDUCE30]] = call <2 x i32> @llvm.experimental.vector.partial.reduce.add.v2i32.v8i32(<2 x i32> [[VEC_PHI18]], <8 x i32> [[TMP56]])
@@ -887,103 +880,7 @@ define void @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %a, ptr %b, ptr %c, pt
 ; CHECK-NEXT:    [[TMP71:%.*]] = call i32 @llvm.vector.reduce.add.v2i32(<2 x i32> [[PARTIAL_REDUCE28]])
 ; CHECK-NEXT:    [[TMP72:%.*]] = call i32 @llvm.vector.reduce.add.v2i32(<2 x i32> [[PARTIAL_REDUCE26]])
 ; CHECK-NEXT:    [[TMP73:%.*]] = call i32 @llvm.vector.reduce.add.v2i32(<2 x i32> [[PARTIAL_REDUCE24]])
-; CHECK-NEXT:    [[CMP_N28:%.*]] = icmp eq i64 [[WIDE_TRIP_COUNT]], [[N_VEC16]]
-; CHECK-NEXT:    br i1 [[CMP_N28]], label [[FOR_COND10_FOR_COND_CLEANUP_CRIT_EDGE_US]], label [[VEC_EPILOG_SCALAR_PH]]
-; CHECK:       vec.epilog.scalar.ph:
-; CHECK-NEXT:    [[BC_RESUME_VAL:%.*]] = phi i64 [ [[N_VEC16]], [[VEC_EPILOG_MIDDLE_BLOCK]] ], [ [[N_VEC]], [[VEC_EPILOG_ITER_CHECK]] ], [ 0, [[ITER_CHECK]] ]
-; CHECK-NEXT:    [[BC_MERGE_RDX29:%.*]] = phi i32 [ [[TMP70]], [[VEC_EPILOG_MIDDLE_BLOCK]] ], [ 0, [[ITER_CHECK]] ], [ [[TMP31]], [[VEC_EPILOG_ITER_CHECK]] ]
-; CHECK-NEXT:    [[BC_MERGE_RDX30:%.*]] = phi i32 [ [[TMP71]], [[VEC_EPILOG_MIDDLE_BLOCK]] ], [ 0, [[ITER_CHECK]] ], [ [[TMP32]], [[VEC_EPILOG_ITER_CHECK]] ]
-; CHECK-NEXT:    [[BC_MERGE_RDX31:%.*]] = phi i32 [ [[TMP72]], [[VEC_EPILOG_MIDDLE_BLOCK]] ], [ 0, [[ITER_CHECK]] ], [ [[TMP33]], [[VEC_EPILOG_ITER_CHECK]] ]
-; CHECK-NEXT:    [[BC_MERGE_RDX32:%.*]] = phi i32 [ [[TMP73]], [[VEC_EPILOG_MIDDLE_BLOCK]] ], [ 0, [[ITER_CHECK]] ], [ [[TMP34]], [[VEC_EPILOG_ITER_CHECK]] ]
-; CHECK-NEXT:    br label [[FOR_BODY12_US:%.*]]
-; CHECK:       for.body12.us:
-; CHECK-NEXT:    [[IV:%.*]] = phi i64 [ [[BC_RESUME_VAL]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[IV_NEXT:%.*]], [[FOR_BODY12_US]] ]
-; CHECK-NEXT:    [[ACCUM3:%.*]] = phi i32 [ [[BC_MERGE_RDX29]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD_A3:%.*]], [[FOR_BODY12_US]] ]
-; CHECK-NEXT:    [[ACCUM2:%.*]] = phi i32 [ [[BC_MERGE_RDX30]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD_A2:%.*]], [[FOR_BODY12_US]] ]
-; CHECK-NEXT:    [[ACCUM1:%.*]] = phi i32 [ [[BC_MERGE_RDX31]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD_A1:%.*]], [[FOR_BODY12_US]] ]
-; CHECK-NEXT:    [[ACCUM0:%.*]] = phi i32 [ [[BC_MERGE_RDX32]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD_A0:%.*]], [[FOR_BODY12_US]] ]
-; CHECK-NEXT:    [[GEP_IDX_A0:%.*]] = getelementptr inbounds i8, ptr [[TMP1]], i64 [[IV]]
-; CHECK-NEXT:    [[LOAD_A0:%.*]] = load i8, ptr [[GEP_IDX_A0]], align 1
-; CHECK-NEXT:    [[EXT_A0:%.*]] = sext i8 [[LOAD_A0]] to i32
-; CHECK-NEXT:    [[GEP_C:%.*]] = getelementptr inbounds i8, ptr [[C]], i64 [[IV]]
-; CHECK-NEXT:    [[LOAD_C:%.*]] = load i8, ptr [[GEP_C]], align 1
-; CHECK-NEXT:    [[EXT_C:%.*]] = sext i8 [[LOAD_C]] to i32
-; CHECK-NEXT:    [[MUL_A0:%.*]] = mul nsw i32 [[EXT_C]], [[EXT_A0]]
-; CHECK-NEXT:    [[ADD_A0]] = add nsw i32 [[MUL_A0]], [[ACCUM0]]
-; CHECK-NEXT:    [[GEP_IDX_A1:%.*]] = getelementptr inbounds i8, ptr [[TMP3]], i64 [[IV]]
-; CHECK-NEXT:    [[LOAD_A1:%.*]] = load i8, ptr [[GEP_IDX_A1]], align 1
-; CHECK-NEXT:    [[EXT_A1:%.*]] = sext i8 [[LOAD_A1]] to i32
-; CHECK-NEXT:    [[MUL_A1:%.*]] = mul nsw i32 [[EXT_A1]], [[EXT_C]]
-; CHECK-NEXT:    [[ADD_A1]] = add nsw i32 [[MUL_A1]], [[ACCUM1]]
-; CHECK-NEXT:    [[GEP_IDX_A2:%.*]] = getelementptr inbounds i8, ptr [[TMP5]], i64 [[IV]]
-; CHECK-NEXT:    [[LOAD_A2:%.*]] = load i8, ptr [[GEP_IDX_A2]], align 1
-; CHECK-NEXT:    [[EXT_A2:%.*]] = sext i8 [[LOAD_A2]] to i32
-; CHECK-NEXT:    [[MUL_A2:%.*]] = mul nsw i32 [[EXT_A2]], [[EXT_C]]
-; CHECK-NEXT:    [[ADD_A2]] = add nsw i32 [[MUL_A2]], [[ACCUM2]]
-; CHECK-NEXT:    [[GEP_IDX_A3:%.*]] = getelementptr inbounds i8, ptr [[TMP7]], i64 [[IV]]
-; CHECK-NEXT:    [[LOAD_A3:%.*]] = load i8, ptr [[GEP_IDX_A3]], align 1
-; CHECK-NEXT:    [[EXT_A3:%.*]] = sext i8 [[LOAD_A3]] to i32
-; CHECK-NEXT:    [[MUL_A3:%.*]] = mul nsw i32 [[EXT_A3]], [[EXT_C]]
-; CHECK-NEXT:    [[ADD_A3]] = add nsw i32 [[MUL_A3]], [[ACCUM3]]
-; CHECK-NEXT:    [[IV_NEXT]] = add nuw nsw i64 [[IV]], 1
-; CHECK-NEXT:    [[EXITCOND_NOT:%.*]] = icmp eq i64 [[IV_NEXT]], [[WIDE_TRIP_COUNT]]
-; CHECK-NEXT:    br i1 [[EXITCOND_NOT]], label [[FOR_COND10_FOR_COND_CLEANUP_CRIT_EDGE_US]], label [[FOR_BODY12_US]], !llvm.loop [[LOOP14:![0-9]+]]
-; CHECK:       for.cond10.for.cond.cleanup_crit_edge.us:
-; CHECK-NEXT:    [[ADD_A0_LCSSA:%.*]] = phi i32 [ [[ADD_A0]], [[FOR_BODY12_US]] ], [ [[TMP34]], [[MIDDLE_BLOCK]] ], [ [[TMP73]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
-; CHECK-NEXT:    [[ADD_A1_LCSSA:%.*]] = phi i32 [ [[ADD_A1]], [[FOR_BODY12_US]] ], [ [[TMP33]], [[MIDDLE_BLOCK]] ], [ [[TMP72]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
-; CHECK-NEXT:    [[ADD_A2_LCSSA:%.*]] = phi i32 [ [[ADD_A2]], [[FOR_BODY12_US]] ], [ [[TMP32]], [[MIDDLE_BLOCK]] ], [ [[TMP71]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
-; CHECK-NEXT:    [[ADD_A3_LCSSA:%.*]] = phi i32 [ [[ADD_A3]], [[FOR_BODY12_US]] ], [ [[TMP31]], [[MIDDLE_BLOCK]] ], [ [[TMP70]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
-; CHECK-NEXT:    [[GEP_IDXPROM_A0:%.*]] = getelementptr inbounds i8, ptr [[TMP1]], i64 [[IDXPROMLOAD_PROM_A0]]
-; CHECK-NEXT:    [[LOAD_PROM_A0:%.*]] = load i8, ptr [[GEP_IDXPROM_A0]], align 1
-; CHECK-NEXT:    [[EXT_PROM_A0:%.*]] = sext i8 [[LOAD_PROM_A0]] to i32
-; CHECK-NEXT:    [[MUL_PROM_A0:%.*]] = mul nsw i32 [[EXT_PROM_A0]], 127
-; CHECK-NEXT:    [[ADD_PROM_A0:%.*]] = add nsw i32 [[MUL_PROM_A0]], [[ADD_A0_LCSSA]]
-; CHECK-NEXT:    [[FPEXT_PROM_A0:%.*]] = sitofp i32 [[ADD_PROM_A0]] to float
-; CHECK-NEXT:    [[ARRAYIDX65_US:%.*]] = getelementptr inbounds float, ptr [[B]], i64 [[INDVARS_IV164]]
-; CHECK-NEXT:    [[TMP82:%.*]] = load float, ptr [[ARRAYIDX65_US]], align 4
-; CHECK-NEXT:    [[FMUL_B:%.*]] = fmul float [[TMP82]], [[FPEXT_PROM_A0]]
-; CHECK-NEXT:    [[GEP_D:%.*]] = getelementptr inbounds float, ptr [[D]], i64 [[INDVARS_IV164]]
-; CHECK-NEXT:    store float [[FMUL_B]], ptr [[GEP_D]], align 4
-; CHECK-NEXT:    [[GEP_IDXPROM_A1:%.*]] = getelementptr inbounds i8, ptr [[TMP3]], i64 [[IDXPROMLOAD_PROM_A0]]
-; CHECK-NEXT:    [[LOAD_PROM_A1:%.*]] = load i8, ptr [[GEP_IDXPROM_A1]], align 1
-; CHECK-NEXT:    [[EXT_PROM_A1:%.*]] = sext i8 [[LOAD_PROM_A1]] to i32
-; CHECK-NEXT:    [[MUL_PROM_A1:%.*]] = mul nsw i32 [[EXT_PROM_A1]], 127
-; CHECK-NEXT:    [[ADD_PROM_A1:%.*]] = add nsw i32 [[MUL_PROM_A1]], [[ADD_A1_LCSSA]]
-; CHECK-NEXT:    [[FPEXT_PROM_A1:%.*]] = sitofp i32 [[ADD_PROM_A1]] to float
-; CHECK-NEXT:    [[GEP_B1:%.*]] = getelementptr inbounds float, ptr [[B]], i64 [[TMP2]]
-; CHECK-NEXT:    [[LOAD_B1:%.*]] = load float, ptr [[GEP_B1]], align 4
-; CHECK-NEXT:    [[FMUL_B1:%.*]] = fmul float [[LOAD_B1]], [[FPEXT_PROM_A1]]
-; CHECK-NEXT:    [[GEP_D1:%.*]] = getelementptr inbounds float, ptr [[D]], i64 [[TMP2]]
-; CHECK-NEXT:    store float [[FMUL_B1]], ptr [[GEP_D1]], align 4
-; CHECK-NEXT:    [[GEP_IDXPROM_A2:%.*]] = getelementptr inbounds i8, ptr [[TMP5]], i64 [[IDXPROMLOAD_PROM_A0]]
-; CHECK-NEXT:    [[LOAD_PROM_A2:%.*]] = load i8, ptr [[GEP_IDXPROM_A2]], align 1
-; CHECK-NEXT:    [[EXT_PROM_A2:%.*]] = sext i8 [[LOAD_PROM_A2]] to i32
-; CHECK-NEXT:    [[MUL_PROM_A2:%.*]] = mul nsw i32 [[EXT_PROM_A2]], 127
-; CHECK-NEXT:    [[ADD_PROM_A2:%.*]] = add nsw i32 [[MUL_PROM_A2]], [[ADD_A2_LCSSA]]
-; CHECK-NEXT:    [[FPEXT_PROM_A2:%.*]] = sitofp i32 [[ADD_PROM_A2]] to float
-; CHECK-NEXT:    [[GEP_B2:%.*]] = getelementptr inbounds float, ptr [[B]], i64 [[TMP4]]
-; CHECK-NEXT:    [[LOAD_B2:%.*]] = load float, ptr [[GEP_B2]], align 4
-; CHECK-NEXT:    [[FMUL_B2:%.*]] = fmul float [[LOAD_B2]], [[FPEXT_PROM_A2]]
-; CHECK-NEXT:    [[GEP_D2:%.*]] = getelementptr inbounds float, ptr [[D]], i64 [[TMP4]]
-; CHECK-NEXT:    store float [[FMUL_B2]], ptr [[GEP_D2]], align 4
-; CHECK-NEXT:    [[GEP_IDXPROM_A3:%.*]] = getelementptr inbounds i8, ptr [[TMP7]], i64 [[IDXPROMLOAD_PROM_A0]]
-; CHECK-NEXT:    [[LOAD_PROM_A3:%.*]] = load i8, ptr [[GEP_IDXPROM_A3]], align 1
-; CHECK-NEXT:    [[EXT_PROM_A3:%.*]] = sext i8 [[LOAD_PROM_A3]] to i32
-; CHECK-NEXT:    [[MUL_PROM_A3:%.*]] = mul nsw i32 [[EXT_PROM_A3]], 127
-; CHECK-NEXT:    [[ADD_PROM_A3:%.*]] = add nsw i32 [[MUL_PROM_A3]], [[ADD_A3_LCSSA]]
-; CHECK-NEXT:    [[FPEXT_PROM_A3:%.*]] = sitofp i32 [[ADD_PROM_A3]] to float
-; CHECK-NEXT:    [[GEP_B3:%.*]] = getelementptr inbounds float, ptr [[B]], i64 [[TMP6]]
-; CHECK-NEXT:    [[LOAD_B3:%.*]] = load float, ptr [[GEP_B3]], align 4
-; CHECK-NEXT:    [[MUL_B3:%.*]] = fmul float [[LOAD_B3]], [[FPEXT_PROM_A3]]
-; CHECK-NEXT:    [[GEP_D3:%.*]] = getelementptr inbounds float, ptr [[D]], i64 [[TMP6]]
-; CHECK-NEXT:    store float [[MUL_B3]], ptr [[GEP_D3]], align 4
-; CHECK-NEXT:    [[IV_NEXT2]] = add nuw nsw i64 [[INDVARS_IV164]], 4
-; CHECK-NEXT:    [[CMP_US:%.*]] = icmp ult i64 [[IV_NEXT2]], [[TMP0]]
-; CHECK-NEXT:    br i1 [[CMP_US]], label [[ITER_CHECK]], label [[FOR_END98_LOOPEXIT:%.*]]
-; CHECK:       for.end98.loopexit:
-; CHECK-NEXT:    br label [[FOR_END98]]
-; CHECK:       for.end98:
-; CHECK-NEXT:    ret void
+; CHECK-NEXT:    br label [[VEC_EPILOG_SCALAR_PH]]
 ;
 entry:
   %cmp154 = icmp sgt i32 %num_out, 3
@@ -995,114 +892,57 @@ for.body.lr.ph:                                   ; preds = %entry
   %cmp.num_in = icmp sgt i32 %num_in, 0
   %ext.num_in = sext i32 %num_in to i64
   %max_iv = zext nneg i32 %mul to i64
-  br i1 %cmp.num_in, label %for.body.us.preheader, label %for.body.preheader
-
-for.body.preheader:                               ; preds = %for.body.lr.ph
-  br label %for.end98
+  br i1 %cmp.num_in, label %for.body.us.preheader, label %for.end98
 
 for.body.us.preheader:                            ; preds = %for.body.lr.ph
   %wide.trip.count = zext nneg i32 %num_in to i64
-  br label %for.body.us
-
-for.body.us:                                      ; preds = %for.body.us.preheader, %for.cond10.for.cond.cleanup_crit_edge.us
-  %iv2 = phi i64 [ 0, %for.body.us.preheader ], [ %iv.next2, %for.cond10.for.cond.cleanup_crit_edge.us ]
-  %gep.a0 = getelementptr inbounds ptr, ptr %a, i64 %iv2
-  %ptr.a = load ptr, ptr %gep.a0, align 8
-  %offset.1 = or disjoint i64 %iv2, 1
-  %gep.a1 = getelementptr inbounds ptr, ptr %a, i64 %offset.1
-  %ptr.a1 = load ptr, ptr %gep.a1, align 8
-  %offset.2 = or disjoint i64 %iv2, 2
-  %gep.a2 = getelementptr inbounds ptr, ptr %a, i64 %offset.2
-  %ptr.a2 = load ptr, ptr %gep.a2, align 8
-  %offset.3 = or disjoint i64 %iv2, 3
-  %gep.a3 = getelementptr inbounds ptr, ptr %a, i64 %offset.3
-  %ptr.a3 = load ptr, ptr %gep.a3, align 8
   br label %for.body12.us
 
 for.body12.us:                                    ; preds = %for.body.us, %for.body12.us
-  %iv = phi i64 [ 0, %for.body.us ], [ %iv.next, %for.body12.us ]
-  %accum3 = phi i32 [ 0, %for.body.us ], [ %add.a3, %for.body12.us ]
-  %accum2 = phi i32 [ 0, %for.body.us ], [ %add.a2, %for.body12.us ]
-  %accum1 = phi i32 [ 0, %for.body.us ], [ %add.a1, %for.body12.us ]
-  %accum0 = phi i32 [ 0, %for.body.us ], [ %add.a0, %for.body12.us ]
-  %gep.idx.a0 = getelementptr inbounds i8, ptr %ptr.a, i64 %iv
-  %load.a0 = load i8, ptr %gep.idx.a0, align 1
+  %iv = phi i64 [ 0, %for.body.us.preheader ], [ %iv.next, %for.body12.us ]
+  %accum3 = phi i32 [ 0, %for.body.us.preheader ], [ %add.a3, %for.body12.us ]
+  %accum2 = phi i32 [ 0, %for.body.us.preheader ], [ %add.a2, %for.body12.us ]
+  %accum1 = phi i32 [ 0, %for.body.us.preheader ], [ %add.a1, %for.body12.us ]
+  %accum0 = phi i32 [ 0, %for.body.us.preheader ], [ %add.a0, %for.body12.us ]
+  %gep.a0 = getelementptr inbounds ptr, ptr %a, i64 %iv
+  %offset.1 = or disjoint i64 %iv, 1
+  %gep.a1 = getelementptr inbounds ptr, ptr %a, i64 %offset.1
+  %offset.2 = or disjoint i64 %iv, 2
+  %gep.a2 = getelementptr inbounds ptr, ptr %a, i64 %offset.2
+  %offset.3 = or disjoint i64 %iv, 3
+  %gep.a3 = getelementptr inbounds ptr, ptr %a, i64 %offset.3
+  %load.a0 = load i8, ptr %gep.a0, align 1
   %ext.a0 = sext i8 %load.a0 to i32
-  %gep.c = getelementptr inbounds i8, ptr %c, i64 %iv
-  %load.c = load i8, ptr %gep.c, align 1
-  %ext.c = sext i8 %load.c to i32
-  %mul.a0 = mul nsw i32 %ext.c, %ext.a0
+  %gep.b = getelementptr inbounds i8, ptr %b, i64 %iv
+  %load.b = load i8, ptr %gep.b, align 1
+  %ext.b = sext i8 %load.b to i32
+  %mul.a0 = mul nsw i32 %ext.b, %ext.a0
   %add.a0 = add nsw i32 %mul.a0, %accum0
-  %gep.idx.a1 = getelementptr inbounds i8, ptr %ptr.a1, i64 %iv
-  %load.a1 = load i8, ptr %gep.idx.a1, align 1
+  %load.a1 = load i8, ptr %gep.a1, align 1
   %ext.a1 = sext i8 %load.a1 to i32
-  %mul.a1 = mul nsw i32 %ext.a1, %ext.c
+  %mul.a1 = mul nsw i32 %ext.a1, %ext.b
   %add.a1 = add nsw i32 %mul.a1, %accum1
-  %gep.idx.a2 = getelementptr inbounds i8, ptr %ptr.a2, i64 %iv
-  %load.a2 = load i8, ptr %gep.idx.a2, align 1
+  %load.a2 = load i8, ptr %gep.a2, align 1
   %ext.a2 = sext i8 %load.a2 to i32
-  %mul.a2 = mul nsw i32 %ext.a2, %ext.c
+  %mul.a2 = mul nsw i32 %ext.a2, %ext.b
   %add.a2 = add nsw i32 %mul.a2, %accum2
-  %gep.idx.a3 = getelementptr inbounds i8, ptr %ptr.a3, i64 %iv
-  %load.a3 = load i8, ptr %gep.idx.a3, align 1
+  %load.a3 = load i8, ptr %gep.a3, align 1
   %ext.a3 = sext i8 %load.a3 to i32
-  %mul.a3 = mul nsw i32 %ext.a3, %ext.c
+  %mul.a3 = mul nsw i32 %ext.a3, %ext.b
   %add.a3 = add nsw i32 %mul.a3, %accum3
   %iv.next = add nuw nsw i64 %iv, 1
   %exitcond.not = icmp eq i64 %iv.next, %wide.trip.count
-  br i1 %exitcond.not, label %for.cond10.for.cond.cleanup_crit_edge.us, label %for.body12.us
+  br i1 %exitcond.not, label %for.end98, label %for.body12.us
 
-for.cond10.for.cond.cleanup_crit_edge.us:         ; preds = %for.body12.us
-  %gep.idxprom.a0 = getelementptr inbounds i8, ptr %ptr.a, i64 %ext.num_in
-  %load.prom.a0 = load i8, ptr %gep.idxprom.a0, align 1
-  %ext.prom.a0 = sext i8 %load.prom.a0 to i32
-  %mul.prom.a0 = mul nsw i32 %ext.prom.a0, 127
-  %add.prom.a0 = add nsw i32 %mul.prom.a0, %add.a0
-  %fpext.prom.a0 = sitofp i32 %add.prom.a0 to float
-  %gep.idxprom.b = getelementptr inbounds float, ptr %b, i64 %iv2
-  %load.b = load float, ptr %gep.idxprom.b, align 4
-  %fmul.b = fmul float %load.b, %fpext.prom.a0
-  %gep.d = getelementptr inbounds float, ptr %d, i64 %iv2
-  store float %fmul.b, ptr %gep.d, align 4
-  %gep.idxprom.a1 = getelementptr inbounds i8, ptr %ptr.a1, i64 %ext.num_in
-  %load.prom.a1 = load i8, ptr %gep.idxprom.a1, align 1
-  %ext.prom.a1 = sext i8 %load.prom.a1 to i32
-  %mul.prom.a1 = mul nsw i32 %ext.prom.a1, 127
-  %add.prom.a1 = add nsw i32 %mul.prom.a1, %add.a1
-  %fpext.prom.a1 = sitofp i32 %add.prom.a1 to float
-  %gep.b1 = getelementptr inbounds float, ptr %b, i64 %offset.1
-  %load.b1 = load float, ptr %gep.b1, align 4
-  %fmul.b1 = fmul float %load.b1, %fpext.prom.a1
-  %gep.d1 = getelementptr inbounds float, ptr %d, i64 %offset.1
-  store float %fmul.b1, ptr %gep.d1, align 4
-  %gep.idxprom.a2 = getelementptr inbounds i8, ptr %ptr.a2, i64 %ext.num_in
-  %load.prom.a2 = load i8, ptr %gep.idxprom.a2, align 1
-  %ext.prom.a2 = sext i8 %load.prom.a2 to i32
-  %mul.prom.a2 = mul nsw i32 %ext.prom.a2, 127
-  %add.prom.a2 = add nsw i32 %mul.prom.a2, %add.a2
-  %fpext.prom.a2 = sitofp i32 %add.prom.a2 to float
-  %gep.b2 = getelementptr inbounds float, ptr %b, i64 %offset.2
-  %load.b2 = load float, ptr %gep.b2, align 4
-  %fmul.b2 = fmul float %load.b2, %fpext.prom.a2
-  %gep.d2 = getelementptr inbounds float, ptr %d, i64 %offset.2
-  store float %fmul.b2, ptr %gep.d2, align 4
-  %gep.idxprom.a3 = getelementptr inbounds i8, ptr %ptr.a3, i64 %ext.num_in
-  %load.prom.a3 = load i8, ptr %gep.idxprom.a3, align 1
-  %ext.prom.a3 = sext i8 %load.prom.a3 to i32
-  %mul.prom.a3 = mul nsw i32 %ext.prom.a3, 127
-  %add.prom.a3 = add nsw i32 %mul.prom.a3, %add.a3
-  %fpext.prom.a3 = sitofp i32 %add.prom.a3 to float
-  %gep.b3 = getelementptr inbounds float, ptr %b, i64 %offset.3
-  %load.b3 = load float, ptr %gep.b3, align 4
-  %mul.b3 = fmul float %load.b3, %fpext.prom.a3
-  %gep.d3 = getelementptr inbounds float, ptr %d, i64 %offset.3
-  store float %mul.b3, ptr %gep.d3, align 4
-  %iv.next2 = add nuw nsw i64 %iv2, 4
-  %cmp.us = icmp ult i64 %iv.next2, %max_iv
-  br i1 %cmp.us, label %for.body.us, label %for.end98
-
-for.end98:                                        ; preds = %for.end98.loopexit171, %for.end98.loopexit, %entry
-  ret void
+for.end98:                                        ; preds = %for.body12.us, %entry
+  %result.a0 = phi i32 [ 0, %for.body.lr.ph ], [ 0, %entry ], [ %add.a0, %for.body12.us ]
+  %result.a1 = phi i32 [ 0, %for.body.lr.ph ], [ 0, %entry ], [ %add.a1, %for.body12.us ]
+  %result.a2 = phi i32 [ 0, %for.body.lr.ph ], [ 0, %entry ], [ %add.a2, %for.body12.us ]
+  %result.a3 = phi i32 [ 0, %for.body.lr.ph ], [ 0, %entry ], [ %add.a3, %for.body12.us ]
+  %result0 = add nsw i32 %result.a0, %result.a1
+  %result1 = add nsw i32 %result.a2, %result.a3
+  %result = add nsw i32 %result0, %result1
+  ret i32 %result
 }
 
 define i32 @not_dotp_predicated(i32 %N, ptr %a, ptr %b) #0 {
