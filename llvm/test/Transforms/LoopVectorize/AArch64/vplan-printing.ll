@@ -21,15 +21,15 @@ define i32 @print_partial_reduction(ptr %a, ptr %b) {
 ; CHECK-NEXT:   EMIT vp<[[CAN_IV:%.+]]> = CANONICAL-INDUCTION ir<0>, vp<[[CAN_IV_NEXT:%.+]]>
 ; CHECK-NEXT:   WIDEN-REDUCTION-PHI ir<[[ACC:%.+]]> = phi ir<0>, ir<%add>
 ; CHECK-NEXT:   vp<[[STEPS:%.+]]> = SCALAR-STEPS vp<[[CAN_IV]]>, ir<1>
-; CHECK-NEXT:   CLONE ir<%arrayidx> = getelementptr ir<%a>, vp<[[STEPS]]>
-; CHECK-NEXT:   vp<%4> = vector-pointer ir<%arrayidx>
-; CHECK-NEXT:   WIDEN ir<%0> = load vp<%4>
-; CHECK-NEXT:   WIDEN-CAST ir<%conv> = zext ir<%0> to i32
-; CHECK-NEXT:   CLONE ir<%arrayidx2> = getelementptr ir<%b>, vp<[[STEPS]]>
-; CHECK-NEXT:   vp<%5> = vector-pointer ir<%arrayidx2>
-; CHECK-NEXT:   WIDEN ir<%1> = load vp<%5>
-; CHECK-NEXT:   WIDEN-CAST ir<%conv3> = zext ir<%1> to i32
-; CHECK-NEXT:   WIDEN ir<%mul> = mul ir<%conv3>, ir<%conv>
+; CHECK-NEXT:   CLONE ir<%gep.a> = getelementptr ir<%a>, vp<[[STEPS]]>
+; CHECK-NEXT:   vp<%4> = vector-pointer ir<%gep.a>
+; CHECK-NEXT:   WIDEN ir<%load.a> = load vp<%4>
+; CHECK-NEXT:   WIDEN-CAST ir<%ext.a> = zext ir<%load.a> to i32
+; CHECK-NEXT:   CLONE ir<%gep.b> = getelementptr ir<%b>, vp<[[STEPS]]>
+; CHECK-NEXT:   vp<%5> = vector-pointer ir<%gep.b>
+; CHECK-NEXT:   WIDEN ir<%load.b> = load vp<%5>
+; CHECK-NEXT:   WIDEN-CAST ir<%ext.b> = zext ir<%load.b> to i32
+; CHECK-NEXT:   WIDEN ir<%mul> = mul ir<%ext.b>, ir<%ext.a>
 ; CHECK-NEXT:   WIDEN ir<%add> = add ir<%mul>, ir<[[ACC]]>
 ; CHECK-NEXT:   EMIT vp<[[CAN_IV_NEXT]]> = add nuw vp<[[CAN_IV]]>, vp<[[VFxUF]]>
 ; CHECK-NEXT:   EMIT branch-on-count vp<[[CAN_IV_NEXT]]>, vp<[[VEC_TC]]>
@@ -64,15 +64,15 @@ define i32 @print_partial_reduction(ptr %a, ptr %b) {
 ; CHECK-NEXT:   EMIT vp<[[CAN_IV:%.+]]> = CANONICAL-INDUCTION ir<0>, vp<[[CAN_IV_NEXT:%.+]]>
 ; CHECK-NEXT:   WIDEN-REDUCTION-PHI ir<[[ACC:%.+]]> = phi ir<0>, vp<%6> (VF scaled by 1/4)
 ; CHECK-NEXT:   vp<[[STEPS:%.+]]> = SCALAR-STEPS vp<[[CAN_IV]]>, ir<1>
-; CHECK-NEXT:   CLONE ir<%arrayidx> = getelementptr ir<%a>, vp<[[STEPS]]>
-; CHECK-NEXT:   vp<%4> = vector-pointer ir<%arrayidx>
-; CHECK-NEXT:   WIDEN ir<%0> = load vp<%4>
-; CHECK-NEXT:   WIDEN-CAST ir<%conv> = zext ir<%0> to i32
-; CHECK-NEXT:   CLONE ir<%arrayidx2> = getelementptr ir<%b>, vp<[[STEPS]]>
-; CHECK-NEXT:   vp<%5> = vector-pointer ir<%arrayidx2>
-; CHECK-NEXT:   WIDEN ir<%1> = load vp<%5>
-; CHECK-NEXT:   WIDEN-CAST ir<%conv3> = zext ir<%1> to i32
-; CHECK-NEXT:   WIDEN ir<%mul> = mul ir<%conv3>, ir<%conv>
+; CHECK-NEXT:   CLONE ir<%gep.a> = getelementptr ir<%a>, vp<[[STEPS]]>
+; CHECK-NEXT:   vp<%4> = vector-pointer ir<%gep.a>
+; CHECK-NEXT:   WIDEN ir<%load.a> = load vp<%4>
+; CHECK-NEXT:   WIDEN-CAST ir<%ext.a> = zext ir<%load.a> to i32
+; CHECK-NEXT:   CLONE ir<%gep.b> = getelementptr ir<%b>, vp<[[STEPS]]>
+; CHECK-NEXT:   vp<%5> = vector-pointer ir<%gep.b>
+; CHECK-NEXT:   WIDEN ir<%load.b> = load vp<%5>
+; CHECK-NEXT:   WIDEN-CAST ir<%ext.b> = zext ir<%load.b> to i32
+; CHECK-NEXT:   WIDEN ir<%mul> = mul ir<%ext.b>, ir<%ext.a>
 ; CHECK-NEXT:   PARTIAL-REDUCE vp<%6> = add ir<%mul>, ir<[[ACC]]>
 ; CHECK-NEXT:   EMIT vp<[[CAN_IV_NEXT]]> = add nuw vp<[[CAN_IV]]>, vp<[[VFxUF]]>
 ; CHECK-NEXT:   EMIT branch-on-count vp<[[CAN_IV_NEXT]]>, vp<[[VEC_TC]]>
@@ -100,15 +100,15 @@ entry:
 
 for.body:                                         ; preds = %for.body, %entry
   %iv = phi i64 [ 0, %entry ], [ %iv.next, %for.body ]
-  %acc.010 = phi i32 [ 0, %entry ], [ %add, %for.body ]
-  %arrayidx = getelementptr i8, ptr %a, i64 %iv
-  %1 = load i8, ptr %arrayidx, align 1
-  %conv = zext i8 %1 to i32
-  %arrayidx2 = getelementptr i8, ptr %b, i64 %iv
-  %2 = load i8, ptr %arrayidx2, align 1
-  %conv3 = zext i8 %2 to i32
-  %mul = mul i32 %conv3, %conv
-  %add = add i32 %mul, %acc.010
+  %accum = phi i32 [ 0, %entry ], [ %add, %for.body ]
+  %gep.a = getelementptr i8, ptr %a, i64 %iv
+  %load.a = load i8, ptr %gep.a, align 1
+  %ext.a = zext i8 %load.a to i32
+  %gep.b = getelementptr i8, ptr %b, i64 %iv
+  %load.b = load i8, ptr %gep.b, align 1
+  %ext.b = zext i8 %load.b to i32
+  %mul = mul i32 %ext.b, %ext.a
+  %add = add i32 %mul, %accum
   %iv.next = add i64 %iv, 1
   %exitcond.not = icmp eq i64 %iv.next, 0
   br i1 %exitcond.not, label %exit, label %for.body
