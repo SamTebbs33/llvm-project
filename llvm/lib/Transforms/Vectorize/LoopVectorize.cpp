@@ -8928,8 +8928,7 @@ VPRecipeBuilder::tryToCreatePartialReduction(Instruction *Reduction,
 
   VPValue *BinOp = Operands[0];
   VPValue *Phi = Operands[1];
-  VPRecipeBase *BinOpRecipe = BinOp->getDefiningRecipe();
-  if (isa<VPReductionPHIRecipe>(BinOpRecipe))
+  if (isa<VPReductionPHIRecipe>(BinOp->getDefiningRecipe()))
     std::swap(BinOp, Phi);
 
   SmallVector<VPValue *, 2> OrderedOperands = {BinOp, Phi};
