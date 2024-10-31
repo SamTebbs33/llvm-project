@@ -157,10 +157,6 @@ define i32 @dotp(ptr %a, ptr %b) #0 {
 entry:
   br label %for.body
 
-for.cond.cleanup.loopexit:                        ; preds = %for.body
-  %result = lshr i32 %add, 0
-  ret i32 %result
-
 for.body:                                         ; preds = %for.body, %entry
   %iv = phi i64 [ 0, %entry ], [ %iv.next, %for.body ]
   %accum = phi i32 [ 0, %entry ], [ %add, %for.body ]
@@ -174,11 +170,14 @@ for.body:                                         ; preds = %for.body, %entry
   %add = add i32 %mul, %accum
   %iv.next = add i64 %iv, 1
   %exitcond.not = icmp eq i64 %iv.next, 0
-  br i1 %exitcond.not, label %for.cond.cleanup.loopexit, label %for.body
+  br i1 %exitcond.not, label %for.exit, label %for.body
+
+for.exit:                        ; preds = %for.body
+  ret i32 %add
 }
 
-define void @not_dotp_different_types(ptr %a, ptr %b) #0 {
-; CHECK-INTERLEAVE1-LABEL: define void @not_dotp_different_types(
+define i32 @not_dotp_different_types(ptr %a, ptr %b) #0 {
+; CHECK-INTERLEAVE1-LABEL: define i32 @not_dotp_different_types(
 ; CHECK-INTERLEAVE1-SAME: ptr [[A:%.*]], ptr [[B:%.*]]) #[[ATTR0]] {
 ; CHECK-INTERLEAVE1-NEXT:  iter.check:
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP72:%.*]] = call i64 @llvm.vscale.i64()
@@ -321,13 +320,9 @@ define void @not_dotp_different_types(ptr %a, ptr %b) #0 {
 ; CHECK-INTERLEAVE1-NEXT:    [[BC_RESUME_VAL1:%.*]] = phi i64 [ [[N_VEC]], [[VEC_EPILOG_MIDDLE_BLOCK]] ], [ 0, [[VEC_EPILOG_ITER_CHECK]] ], [ 0, [[ITER_CHECK:%.*]] ]
 ; CHECK-INTERLEAVE1-NEXT:    [[BC_MERGE_RDX8:%.*]] = phi i32 [ [[TMP94]], [[VEC_EPILOG_MIDDLE_BLOCK]] ], [ 0, [[ITER_CHECK]] ], [ [[TMP71]], [[VEC_EPILOG_ITER_CHECK]] ]
 ; CHECK-INTERLEAVE1-NEXT:    br label [[FOR_BODY:%.*]]
-; CHECK-INTERLEAVE1:       for.cond.cleanup.loopexit:
-; CHECK-INTERLEAVE1-NEXT:    [[ADD_LCSSA:%.*]] = phi i32 [ [[ADD:%.*]], [[FOR_BODY]] ], [ [[TMP71]], [[MIDDLE_BLOCK]] ], [ [[TMP94]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
-; CHECK-INTERLEAVE1-NEXT:    [[TMP95:%.*]] = lshr i32 [[ADD_LCSSA]], 0
-; CHECK-INTERLEAVE1-NEXT:    ret void
 ; CHECK-INTERLEAVE1:       for.body:
 ; CHECK-INTERLEAVE1-NEXT:    [[IV:%.*]] = phi i64 [ [[BC_RESUME_VAL1]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[IV_NEXT:%.*]], [[FOR_BODY]] ]
-; CHECK-INTERLEAVE1-NEXT:    [[ACCUM:%.*]] = phi i32 [ [[BC_MERGE_RDX8]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD]], [[FOR_BODY]] ]
+; CHECK-INTERLEAVE1-NEXT:    [[ACCUM:%.*]] = phi i32 [ [[BC_MERGE_RDX8]], [[VEC_EPILOG_SCALAR_PH]] ], [ [[ADD:%.*]], [[FOR_BODY]] ]
 ; CHECK-INTERLEAVE1-NEXT:    [[GEP_A:%.*]] = getelementptr i8, ptr [[A]], i64 [[IV]]
 ; CHECK-INTERLEAVE1-NEXT:    [[LOAD_A:%.*]] = load i8, ptr [[GEP_A]], align 1
 ; CHECK-INTERLEAVE1-NEXT:    [[EXT_A:%.*]] = zext i8 [[LOAD_A]] to i32
@@ -339,8 +334,11 @@ define void @not_dotp_different_types(ptr %a, ptr %b) #0 {
 ; CHECK-INTERLEAVE1-NEXT:    [[IV_NEXT]] = add i64 [[IV]], 1
 ; CHECK-INTERLEAVE1-NEXT:    [[EXITCOND_NOT:%.*]] = icmp eq i64 [[IV_NEXT]], 0
 ; CHECK-INTERLEAVE1-NEXT:    br i1 [[EXITCOND_NOT]], label [[FOR_COND_CLEANUP_LOOPEXIT]], label [[FOR_BODY]], !llvm.loop [[LOOP7:![0-9]+]]
+; CHECK-INTERLEAVE1:       for.exit:
+; CHECK-INTERLEAVE1-NEXT:    [[ADD_LCSSA:%.*]] = phi i32 [ [[ADD]], [[FOR_BODY]] ], [ [[TMP71]], [[MIDDLE_BLOCK]] ], [ [[TMP94]], [[VEC_EPILOG_MIDDLE_BLOCK]] ]
+; CHECK-INTERLEAVE1-NEXT:    ret i32 [[ADD_LCSSA]]
 ;
-; CHECK-INTERLEAVED-LABEL: define void @not_dotp_different_types(
+; CHECK-INTERLEAVED-LABEL: define i32 @not_dotp_different_types(
 ; CHECK-INTERLEAVED-SAME: ptr [[A:%.*]], ptr [[B:%.*]]) #[[ATTR0]] {
 ; CHECK-INTERLEAVED-NEXT:  iter.check:
 ; CHECK-INTERLEAVED-NEXT:    [[TMP37:%.*]] = call i64 @llvm.vscale.i64()
@@ -507,10 +505,6 @@ define void @not_dotp_different_types(ptr %a, ptr %b) #0 {
 entry:
   br label %for.body
 
-for.cond.cleanup.loopexit:                        ; preds = %for.body
-  %0 = lshr i32 %add, 0
-  ret void
-
 for.body:                                         ; preds = %for.body, %entry
   %iv = phi i64 [ 0, %entry ], [ %iv.next, %for.body ]
   %accum = phi i32 [ 0, %entry ], [ %add, %for.body ]
@@ -524,11 +518,14 @@ for.body:                                         ; preds = %for.body, %entry
   %add = add i32 %mul, %accum
   %iv.next = add i64 %iv, 1
   %exitcond.not = icmp eq i64 %iv.next, 0
-  br i1 %exitcond.not, label %for.cond.cleanup.loopexit, label %for.body
+  br i1 %exitcond.not, label %for.exit, label %for.body
+
+for.exit:                        ; preds = %for.body
+  ret i32 %add
 }
 
-define void @not_dotp_not_loop_carried(ptr %a, ptr %b) #0 {
-; CHECK-INTERLEAVE1-LABEL: define void @not_dotp_not_loop_carried(
+define i32 @not_dotp_not_loop_carried(ptr %a, ptr %b) #0 {
+; CHECK-INTERLEAVE1-LABEL: define i32 @not_dotp_not_loop_carried(
 ; CHECK-INTERLEAVE1-SAME: ptr [[A:%.*]], ptr [[B:%.*]]) #[[ATTR0]] {
 ; CHECK-INTERLEAVE1-NEXT:  entry:
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP0:%.*]] = call i64 @llvm.vscale.i64()
@@ -566,7 +563,7 @@ define void @not_dotp_not_loop_carried(ptr %a, ptr %b) #0 {
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP19:%.*]] = icmp eq i64 [[INDEX_NEXT]], [[N_VEC]]
 ; CHECK-INTERLEAVE1-NEXT:    br i1 [[TMP19]], label [[MIDDLE_BLOCK:%.*]], label [[VECTOR_BODY]], !llvm.loop [[LOOP8:![0-9]+]]
 ;
-; CHECK-INTERLEAVED-LABEL: define void @not_dotp_not_loop_carried(
+; CHECK-INTERLEAVED-LABEL: define i32 @not_dotp_not_loop_carried(
 ; CHECK-INTERLEAVED-SAME: ptr [[A:%.*]], ptr [[B:%.*]]) #[[ATTR0]] {
 ; CHECK-INTERLEAVED-NEXT:  entry:
 ; CHECK-INTERLEAVED-NEXT:    [[TMP0:%.*]] = call i64 @llvm.vscale.i64()
@@ -618,10 +615,6 @@ define void @not_dotp_not_loop_carried(ptr %a, ptr %b) #0 {
 entry:
   br label %for.body
 
-for.cond.cleanup.loopexit:                        ; preds = %for.body
-  %0 = lshr i32 %add, 0
-  ret void
-
 for.body:                                         ; preds = %for.body, %entry
   %iv = phi i64 [ 0, %entry ], [ %iv.next, %for.body ]
   %accum = phi i32 [ 0, %entry ], [ %mul, %for.body ]
@@ -635,11 +628,14 @@ for.body:                                         ; preds = %for.body, %entry
   %add = add i32 %mul, %accum
   %iv.next = add i64 %iv, 1
   %exitcond.not = icmp eq i64 %iv.next, 0
-  br i1 %exitcond.not, label %for.cond.cleanup.loopexit, label %for.body
+  br i1 %exitcond.not, label %for.exit, label %for.body
+
+for.exit:                        ; preds = %for.body
+  ret i32 %add
 }
 
-define void @not_dotp_not_phi(ptr %a, ptr %b) #0 {
-; CHECK-INTERLEAVE1-LABEL: define void @not_dotp_not_phi(
+define i32 @not_dotp_not_phi(ptr %a, ptr %b) #0 {
+; CHECK-INTERLEAVE1-LABEL: define i32 @not_dotp_not_phi(
 ; CHECK-INTERLEAVE1-SAME: ptr [[A:%.*]], ptr [[B:%.*]]) #[[ATTR0]] {
 ; CHECK-INTERLEAVE1-NEXT:  entry:
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP0:%.*]] = call i64 @llvm.vscale.i64()
@@ -676,7 +672,7 @@ define void @not_dotp_not_phi(ptr %a, ptr %b) #0 {
 ; CHECK-INTERLEAVE1-NEXT:    [[TMP18:%.*]] = icmp eq i64 [[INDEX_NEXT]], [[N_VEC]]
 ; CHECK-INTERLEAVE1-NEXT:    br i1 [[TMP18]], label [[MIDDLE_BLOCK:%.*]], label [[VECTOR_BODY]], !llvm.loop [[LOOP10:![0-9]+]]
 ;
-; CHECK-INTERLEAVED-LABEL: define void @not_dotp_not_phi(
+; CHECK-INTERLEAVED-LABEL: define i32 @not_dotp_not_phi(
 ; CHECK-INTERLEAVED-SAME: ptr [[A:%.*]], ptr [[B:%.*]]) #[[ATTR0]] {
 ; CHECK-INTERLEAVED-NEXT:  entry:
 ; CHECK-INTERLEAVED-NEXT:    [[TMP0:%.*]] = call i64 @llvm.vscale.i64()
@@ -722,10 +718,6 @@ define void @not_dotp_not_phi(ptr %a, ptr %b) #0 {
 entry:
   br label %for.body
 
-for.cond.cleanup.loopexit:                        ; preds = %for.body
-  %0 = lshr i32 %add, 0
-  ret void
-
 for.body:                                         ; preds = %for.body, %entry
   %iv = phi i64 [ 0, %entry ], [ %iv.next, %for.body ]
   %accum = phi i32 [ 0, %entry ], [ %add, %for.body ]
@@ -739,7 +731,10 @@ for.body:                                         ; preds = %for.body, %entry
   %add = add i32 %mul, %ext.b
   %iv.next = add i64 %iv, 1
   %exitcond.not = icmp eq i64 %iv.next, 0
-  br i1 %exitcond.not, label %for.cond.cleanup.loopexit, label %for.body
+  br i1 %exitcond.not, label %for.exit, label %for.body
+
+for.exit:                        ; preds = %for.body
+  ret i32 %add
 }
 
 define i32 @dotp_unrolled(i32 %num_out, i32 %num_in, ptr %a, ptr %b) #0 {
@@ -989,19 +984,11 @@ define i32 @not_dotp_predicated(i32 %N, ptr %a, ptr %b) #0 {
 entry:
   %rem = srem i32 %N, 16
   %cmp8 = icmp sgt i32 %rem, 0
-  br i1 %cmp8, label %for.body.preheader, label %for.cond.cleanup
+  br i1 %cmp8, label %for.body.preheader, label %for.cleanup
 
 for.body.preheader:                               ; preds = %entry
   %wide.trip.count = zext nneg i32 %rem to i64
   br label %for.body
-
-for.cond.cleanup.loopexit:                        ; preds = %for.body
-  %add.lcssa = phi i32 [ %add, %for.body ]
-  br label %for.cond.cleanup
-
-for.cond.cleanup:                                 ; preds = %for.cond.cleanup.loopexit, %entry
-  %total.0.lcssa = phi i32 [ 0, %entry ], [ %add.lcssa, %for.cond.cleanup.loopexit ]
-  ret i32 %total.0.lcssa
 
 for.body:                                         ; preds = %for.body.preheader, %for.body
   %iv = phi i64 [ 0, %for.body.preheader ], [ %iv.next, %for.body ]
@@ -1016,7 +1003,15 @@ for.body:                                         ; preds = %for.body.preheader,
   %add = add nsw i32 %mul, %accum
   %iv.next = add nuw nsw i64 %iv, 1
   %exitcond.not = icmp eq i64 %iv.next, %wide.trip.count
-  br i1 %exitcond.not, label %for.cond.cleanup.loopexit, label %for.body
+  br i1 %exitcond.not, label %for.exit, label %for.body
+
+for.exit:                        ; preds = %for.body
+  %add.lcssa = phi i32 [ %add, %for.body ]
+  br label %for.cleanup
+
+for.cleanup:                                 ; preds = %for.exit, %entry
+  %total = phi i32 [ 0, %entry ], [ %add.lcssa, %for.exit ]
+  ret i32 %total
 }
 
 define i32 @not_dotp_predicated_pragma(i32 %N, ptr %a, ptr %b) #0 {
@@ -1067,14 +1062,6 @@ for.body.preheader:                               ; preds = %entry
   %wide.trip.count = zext i32 %N to i64
   br label %for.body
 
-for.cond.cleanup.loopexit:                        ; preds = %for.body
-  %add.lcssa = phi i32 [ %add, %for.body ]
-  br label %for.cond.cleanup
-
-for.cond.cleanup:                                 ; preds = %for.cond.cleanup.loopexit, %entry
-  %total.0.lcssa = phi i32 [ 0, %entry ], [ %add.lcssa, %for.cond.cleanup.loopexit ]
-  ret i32 %total.0.lcssa
-
 for.body:                                         ; preds = %for.body.preheader, %for.body
   %iv = phi i64 [ 0, %for.body.preheader ], [ %iv.next, %for.body ]
   %accum = phi i32 [ 0, %for.body.preheader ], [ %add, %for.body ]
@@ -1088,7 +1075,15 @@ for.body:                                         ; preds = %for.body.preheader,
   %add = add nsw i32 %mul, %accum
   %iv.next = add nuw nsw i64 %iv, 1
   %exitcond.not = icmp eq i64 %iv.next, %wide.trip.count
-  br i1 %exitcond.not, label %for.cond.cleanup.loopexit, label %for.body, !llvm.loop !7
+  br i1 %exitcond.not, label %for.exit, label %for.body, !llvm.loop !7
+
+for.exit:                        ; preds = %for.body
+  %add.lcssa = phi i32 [ %add, %for.body ]
+  br label %for.cond.cleanup
+
+for.cond.cleanup:                                 ; preds = %for.exit, %entry
+  %total = phi i32 [ 0, %entry ], [ %add.lcssa, %for.exit ]
+  ret i32 %total
 }
 
 define i32 @not_dotp_extend_user(ptr %a, ptr %b) #0 {
@@ -1162,10 +1157,6 @@ define i32 @not_dotp_extend_user(ptr %a, ptr %b) #0 {
 entry:
   br label %for.body
 
-for.cond.cleanup.loopexit:                        ; preds = %for.body
-  %result = add i32 %add, %ext.b
-  ret i32 %result
-
 for.body:                                         ; preds = %for.body, %entry
   %iv = phi i64 [ 0, %entry ], [ %iv.next, %for.body ]
   %accum = phi i32 [ 0, %entry ], [ %add, %for.body ]
@@ -1179,7 +1170,11 @@ for.body:                                         ; preds = %for.body, %entry
   %add = add i32 %mul, %accum
   %iv.next = add i64 %iv, 1
   %exitcond.not = icmp eq i64 %iv.next, 0
-  br i1 %exitcond.not, label %for.cond.cleanup.loopexit, label %for.body
+  br i1 %exitcond.not, label %for.exit, label %for.body
+
+for.exit:                        ; preds = %for.body
+  %result = add i32 %add, %ext.b
+  ret i32 %result
 }
 
 !7 = distinct !{!7, !8, !9, !10}
