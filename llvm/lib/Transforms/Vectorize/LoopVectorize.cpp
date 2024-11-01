@@ -8926,27 +8926,23 @@ void VPRecipeBuilder::removeInvalidScaledReductionExitInstrs() {
   // extends are intended to be lowered along with the reduction itself.
 
   // Build up a set of partial reduction bin ops for efficient use checking
-  SmallSet<Instruction *, 4> PartialReductionBinOps;
-  for (auto It : ScaledReductionExitInstrs) {
-    if (It.second.BinOp)
-      PartialReductionBinOps.insert(It.second.BinOp);
+  SmallSet<User *, 4> PartialReductionBinOps;
+  for (const auto &[_, Chain] : ScaledReductionExitInstrs) {
+    if (Chain.BinOp)
+      PartialReductionBinOps.insert(Chain.BinOp);
   }
 
   auto ExtendIsOnlyUsedByPartialReductions =
-      [PartialReductionBinOps](Instruction *Extend) {
-        for (auto *Use : Extend->users()) {
-          Instruction *UseInstr = dyn_cast<Instruction>(Use);
-          if (!PartialReductionBinOps.contains(UseInstr))
-            return false;
-        }
-        return true;
+      [&PartialReductionBinOps](Instruction *Extend) {
+        return all_of(Extend->users(), [&](const User *U) {
+          return PartialReductionBinOps.contains(U);
+        });
       };
 
   // Check if each use of a chain's two extends is a partial reduction
   // and remove those that have non-partial reduction users
   SmallSet<Instruction *, 4> PartialReductionsToRemove;
-  for (auto It : ScaledReductionExitInstrs) {
-    PartialReductionChain Chain = It.second;
+  for (const auto &[_, Chain] : ScaledReductionExitInstrs) {
     if (!ExtendIsOnlyUsedByPartialReductions(Chain.ExtendA) ||
         !ExtendIsOnlyUsedByPartialReductions(Chain.ExtendB))
       PartialReductionsToRemove.insert(Chain.Reduction);
