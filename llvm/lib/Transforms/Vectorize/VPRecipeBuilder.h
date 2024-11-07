@@ -147,10 +147,6 @@ public:
       : Plan(Plan), OrigLoop(OrigLoop), TLI(TLI), TTI(TTI), Legal(Legal),
         CM(CM), PSE(PSE), Builder(Builder) {}
 
-  void addScaledReductionExitInstr(PartialReductionChain Chain) {
-    ScaledReductionExitInstrs.insert(std::make_pair(Chain.Reduction, Chain));
-  }
-
   std::optional<PartialReductionChain>
   getScaledReductionForInstr(const Instruction *ExitInst) {
     auto It = ScaledReductionExitInstrs.find(ExitInst);
@@ -159,7 +155,7 @@ public:
                : std::make_optional(It->second);
   }
 
-  void removeInvalidScaledReductionExitInstrs();
+  void addScaledReductionExitInstrs(SmallVector<PartialReductionChain> Chains);
 
   /// Create and return a widened recipe for \p I if one can be created within
   /// the given VF \p Range.
