@@ -26,19 +26,19 @@ class TargetTransformInfo;
 
 /// A chain of instructions that form a partial reduction.
 /// Designed to match: reduction_bin_op (bin_op (extend (A), (extend (B))),
-/// accumulator)
+/// accumulator).
 struct PartialReductionChain {
   /// The top-level binary operation that forms the reduction to a scalar
-  /// after the loop body
+  /// after the loop body.
   Instruction *Reduction;
-  /// The extension of each of the inner binary operation's operands
+  /// The extension of each of the inner binary operation's operands.
   Instruction *ExtendA;
   Instruction *ExtendB;
 
   Instruction *BinOp;
 
   /// The scaling factor between the size of the reduction type and the
-  /// (possibly extended) inputs
+  /// (possibly extended) inputs.
   unsigned ScaleFactor;
 };
 
@@ -167,6 +167,8 @@ public:
                                        ArrayRef<VPValue *> Operands,
                                        VFRange &Range, VPBasicBlock *VPBB);
 
+  // Create and return a partial reduction recipe for a reduction instruction
+  // along with binary operation and reduction phi operands.
   VPRecipeBase *tryToCreatePartialReduction(Instruction *Reduction,
                                             ArrayRef<VPValue *> Operands);
 
