@@ -38,17 +38,33 @@ define i32 @print_partial_reduction(ptr %a, ptr %b) {
 ; CHECK-NEXT: Successor(s): middle.block
 ; CHECK-EMPTY:
 ; CHECK-NEXT: middle.block:
-; CHECK-NEXT:   EMIT vp<%8> = compute-reduction-result ir<[[ACC]]>, ir<%add>
-; CHECK-NEXT:   EMIT vp<%9> = extract-from-end vp<%8>, ir<1>
-; CHECK-NEXT:   EMIT vp<%10> = icmp eq ir<0>, vp<%1>
-; CHECK-NEXT:   EMIT branch-on-cond vp<%10>
+; CHECK-NEXT:   EMIT vp<[[RED_RESULT:%.+]]> = compute-reduction-result ir<[[ACC]]>, ir<%add>
+; CHECK-NEXT:   EMIT vp<[[EXTRACT:%.+]]> = extract-from-end vp<[[RED_RESULT]]>, ir<1>
+; CHECK-NEXT:   EMIT vp<[[CMP:%.+]]> = icmp eq ir<0>, vp<%1>
+; CHECK-NEXT:   EMIT branch-on-cond vp<[[CMP]]>
 ; CHECK-NEXT: Successor(s): ir-bb<exit>, scalar.ph
 ; CHECK-EMPTY:
 ; CHECK-NEXT: ir-bb<exit>:
-; CHECK-NEXT:   IR   %add.lcssa = phi i32 [ %add, %for.body ] (extra operand: vp<%9>)
+; CHECK-NEXT:   IR   %add.lcssa = phi i32 [ %add, %for.body ] (extra operand: vp<[[EXTRACT]]>)
 ; CHECK-NEXT: No successors
 ; CHECK-EMPTY:
 ; CHECK-NEXT: scalar.ph:
+; CHECK-NEXT:   EMIT vp<%bc.merge.rdx> = resume-phi vp<[[RED_RESULT]]>, ir<0>
+; CHECK-NEXT: Successor(s): ir-bb<for.body>
+; CHECK-EMPTY:
+; CHECK-NEXT: ir-bb<for.body>:
+; CHECK-NEXT:   IR   %iv = phi i64 [ 0, %entry ], [ %iv.next, %for.body ]
+; CHECK-NEXT:   IR   %accum = phi i32 [ 0, %entry ], [ %add, %for.body ] (extra operand: vp<%bc.merge.rdx>)
+; CHECK-NEXT:   IR   %gep.a = getelementptr i8, ptr %a, i64 %iv
+; CHECK-NEXT:   IR   %load.a = load i8, ptr %gep.a, align 1
+; CHECK-NEXT:   IR   %ext.a = zext i8 %load.a to i32
+; CHECK-NEXT:   IR   %gep.b = getelementptr i8, ptr %b, i64 %iv
+; CHECK-NEXT:   IR   %load.b = load i8, ptr %gep.b, align 1
+; CHECK-NEXT:   IR   %ext.b = zext i8 %load.b to i32
+; CHECK-NEXT:   IR   %mul = mul i32 %ext.b, %ext.a
+; CHECK-NEXT:   IR   %add = add i32 %mul, %accum
+; CHECK-NEXT:   IR   %iv.next = add i64 %iv, 1
+; CHECK-NEXT:   IR   %exitcond.not = icmp eq i64 %iv.next, 0
 ; CHECK-NEXT: No successors
 ; CHECK-NEXT: }
 ; CHECK:      VPlan 'Initial VPlan for VF={8,16},UF>=1' {
@@ -88,10 +104,26 @@ define i32 @print_partial_reduction(ptr %a, ptr %b) {
 ; CHECK-NEXT: Successor(s): ir-bb<exit>, scalar.ph
 ; CHECK-EMPTY:
 ; CHECK-NEXT: ir-bb<exit>:
-; CHECK-NEXT:   IR   %add.lcssa = phi i32 [ %add, %for.body ] (extra operand: vp<[[EXTRACT]]>)
+; CHECK-NEXT:   IR   %add.lcssa = phi i32 [ %add, %for.body ] (extra operand: vp<%9>)
 ; CHECK-NEXT: No successors
 ; CHECK-EMPTY:
 ; CHECK-NEXT: scalar.ph:
+; CHECK-NEXT:   EMIT vp<%bc.merge.rdx> = resume-phi vp<[[RED_RESULT]]>, ir<0>
+; CHECK-NEXT: Successor(s): ir-bb<for.body>
+; CHECK-EMPTY:
+; CHECK-NEXT: ir-bb<for.body>:
+; CHECK-NEXT:   IR   %iv = phi i64 [ 0, %entry ], [ %iv.next, %for.body ]
+; CHECK-NEXT:   IR   %accum = phi i32 [ 0, %entry ], [ %add, %for.body ] (extra operand: vp<%bc.merge.rdx>)
+; CHECK-NEXT:   IR   %gep.a = getelementptr i8, ptr %a, i64 %iv
+; CHECK-NEXT:   IR   %load.a = load i8, ptr %gep.a, align 1
+; CHECK-NEXT:   IR   %ext.a = zext i8 %load.a to i32
+; CHECK-NEXT:   IR   %gep.b = getelementptr i8, ptr %b, i64 %iv
+; CHECK-NEXT:   IR   %load.b = load i8, ptr %gep.b, align 1
+; CHECK-NEXT:   IR   %ext.b = zext i8 %load.b to i32
+; CHECK-NEXT:   IR   %mul = mul i32 %ext.b, %ext.a
+; CHECK-NEXT:   IR   %add = add i32 %mul, %accum
+; CHECK-NEXT:   IR   %iv.next = add i64 %iv, 1
+; CHECK-NEXT:   IR   %exitcond.not = icmp eq i64 %iv.next, 0
 ; CHECK-NEXT: No successors
 ; CHECK-NEXT: }
 ;

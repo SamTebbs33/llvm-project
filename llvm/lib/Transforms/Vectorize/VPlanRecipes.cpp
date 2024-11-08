@@ -291,16 +291,20 @@ InstructionCost VPRecipeBase::computeCost(ElementCount VF,
   llvm_unreachable("subclasses should implement computeCost");
 }
 
-InstructionCost VPSingleDefRecipe::computeCost(ElementCount VF,
-                                               VPCostContext &Ctx) const {
-  Instruction *UI = dyn_cast_or_null<Instruction>(getUnderlyingValue());
-  if (isa<VPReplicateRecipe>(this)) {
-    assert(UI && "VPReplicateRecipe must have an underlying instruction");
-    // VPReplicateRecipe may be cloned as part of an existing VPlan-to-VPlan
-    // transform, avoid computing their cost multiple times for now.
-    Ctx.SkipCostComputation.insert(UI);
-  }
-  return UI ? Ctx.getLegacyCost(UI, VF) : 0;
+InstructionCost
+VPPartialReductionRecipe::computeCost(ElementCount VF,
+                                      VPCostContext &Ctx) const {
+  auto *BinOp = cast<BinaryOperator>(getOperand(0)->getUnderlyingValue());
+  auto *PhiR = cast<VPReductionPHIRecipe>(getOperand(1)->getDefiningRecipe());
+  auto *Phi = cast<PHINode>(PhiR->getUnderlyingValue());
+  auto *ExtA = cast<Instruction>(BinOp->getOperand(0));
+  auto *ExtB = cast<Instruction>(BinOp->getOperand(1));
+  Value *A = ExtA->getOperand(0);
+  return Ctx.TTI.getPartialReductionCost(
+      Opcode, A->getType(), Phi->getType(), VF,
+      TargetTransformInfo::getPartialReductionExtendKind(ExtA),
+      TargetTransformInfo::getPartialReductionExtendKind(ExtB),
+      std::make_optional(BinOp->getOpcode()));
 }
 
 void VPPartialReductionRecipe::execute(VPTransformState &State) {

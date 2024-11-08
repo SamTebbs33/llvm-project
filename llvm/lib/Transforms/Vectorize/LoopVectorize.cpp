@@ -8944,8 +8944,8 @@ void VPRecipeBuilder::addScaledReductionExitInstrs(
   // and only add those those that don't have non-partial reduction users
   for (auto It : Chains) {
     PartialReductionChain Chain = It;
-    if (!ExtendIsOnlyUsedByPartialReductions(Chain.ExtendA) ||
-        !ExtendIsOnlyUsedByPartialReductions(Chain.ExtendB))
+    if (ExtendIsOnlyUsedByPartialReductions(Chain.ExtendA) &&
+        ExtendIsOnlyUsedByPartialReductions(Chain.ExtendB))
       ScaledReductionExitInstrs.insert(std::make_pair(Chain.Reduction, Chain));
   }
 }
