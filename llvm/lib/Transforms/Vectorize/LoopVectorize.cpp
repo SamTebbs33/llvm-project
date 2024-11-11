@@ -8759,16 +8759,48 @@ VPReplicateRecipe *VPRecipeBuilder::handleReplication(Instruction *I,
   return Recipe;
 }
 
+void VPRecipeBuilder::collectScaledReductions(VFRange &Range) {
+  // Find all possible partial reductions
+  SmallVector<PartialReductionChain, 1> PartialReductionChains;
+  for (const auto &[Phi, RdxDesc] : Legal->getReductionVars())
+    if (std::optional<PartialReductionChain> Chain =
+            getScaledReduction(Phi, RdxDesc, Range))
+      PartialReductionChains.push_back(*Chain);
+
+  // A partial reduction is invalid if any of its extends are used by
+  // something that isn't another partial reduction. This is because the
+  // extends are intended to be lowered along with the reduction itself.
+
+  // Build up a set of partial reduction bin ops for efficient use checking
+  SmallSet<User *, 4> PartialReductionBinOps;
+  for (auto It : PartialReductionChains) {
+    if (It.BinOp)
+      PartialReductionBinOps.insert(It.BinOp);
+  }
+
+  auto ExtendIsOnlyUsedByPartialReductions =
+      [&PartialReductionBinOps](Instruction *Extend) {
+        return all_of(Extend->users(), [&](const User *U) {
+          return PartialReductionBinOps.contains(U);
+        });
+      };
+
+  // Check if each use of a chain's two extends is a partial reduction
+  // and only add those those that don't have non-partial reduction users
+  for (auto It : PartialReductionChains) {
+    PartialReductionChain Chain = It;
+    if (ExtendIsOnlyUsedByPartialReductions(Chain.ExtendA) &&
+        ExtendIsOnlyUsedByPartialReductions(Chain.ExtendB))
+      ScaledReductionExitInstrs.insert(std::make_pair(Chain.Reduction, Chain));
+  }
+}
+
 /// Examines reduction operations to see if the target can use a cheaper
 /// operation with a wider per-iteration input VF and narrower PHI VF.
 /// Returns a struct containing the ratio between the two VFs and other cached
 /// information, or null if no scalable reduction was found.
-static std::optional<PartialReductionChain>
-getScaledReduction(PHINode *PHI, const RecurrenceDescriptor &Rdx,
-                   const TargetTransformInfo *TTI, VFRange &Range,
-                   LoopVectorizationCostModel &CM) {
-  // FIXME: Should we move this to VPRecipeBuilder and cache the values needed
-  //        for the TTI query?
+std::optional<PartialReductionChain> VPRecipeBuilder::getScaledReduction(
+    PHINode *PHI, const RecurrenceDescriptor &Rdx, VFRange &Range) {
   // TODO: Allow scaling reductions when predicating. The select at
   // the end of the loop chooses between the phi value and most recent
   // reduction result, both of which have different VFs to the active lane
@@ -8918,36 +8950,6 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
   }
 
   return tryToWiden(Instr, Operands, VPBB);
-}
-
-void VPRecipeBuilder::addScaledReductionExitInstrs(
-    SmallVector<PartialReductionChain> Chains) {
-  // A partial reduction is invalid if any of its extends are used by
-  // something that isn't another partial reduction. This is because the
-  // extends are intended to be lowered along with the reduction itself.
-
-  // Build up a set of partial reduction bin ops for efficient use checking
-  SmallSet<User *, 4> PartialReductionBinOps;
-  for (auto It : Chains) {
-    if (It.BinOp)
-      PartialReductionBinOps.insert(It.BinOp);
-  }
-
-  auto ExtendIsOnlyUsedByPartialReductions =
-      [&PartialReductionBinOps](Instruction *Extend) {
-        return all_of(Extend->users(), [&](const User *U) {
-          return PartialReductionBinOps.contains(U);
-        });
-      };
-
-  // Check if each use of a chain's two extends is a partial reduction
-  // and only add those those that don't have non-partial reduction users
-  for (auto It : Chains) {
-    PartialReductionChain Chain = It;
-    if (ExtendIsOnlyUsedByPartialReductions(Chain.ExtendA) &&
-        ExtendIsOnlyUsedByPartialReductions(Chain.ExtendB))
-      ScaledReductionExitInstrs.insert(std::make_pair(Chain.Reduction, Chain));
-  }
 }
 
 VPRecipeBase *
@@ -9319,14 +9321,7 @@ LoopVectorizationPlanner::tryToBuildVPlanWithVPRecipes(VFRange &Range) {
         return Legal->blockNeedsPredication(BB) || NeedsBlends;
       });
 
-  // Cache the partial reductions up front so we can remove the invalid ones
-  // before creating the recipes
-  SmallVector<PartialReductionChain, 1> PartialReductionChains;
-  for (const auto &[Phi, RdxDesc] : Legal->getReductionVars())
-    if (std::optional<PartialReductionChain> Chain =
-            getScaledReduction(Phi, RdxDesc, &TTI, Range, CM))
-      PartialReductionChains.push_back(*Chain);
-  RecipeBuilder.addScaledReductionExitInstrs(PartialReductionChains);
+  RecipeBuilder.collectScaledReductions(Range);
 
   auto *MiddleVPBB = Plan->getMiddleBlock();
   VPBasicBlock::iterator MBIP = MiddleVPBB->getFirstNonPhi();

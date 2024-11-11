@@ -138,6 +138,10 @@ class VPRecipeBuilder {
   VPHistogramRecipe *tryToWidenHistogram(const HistogramInfo *HI,
                                          ArrayRef<VPValue *> Operands);
 
+  std::optional<PartialReductionChain>
+  getScaledReduction(PHINode *PHI, const RecurrenceDescriptor &Rdx,
+                     VFRange &Range);
+
 public:
   VPRecipeBuilder(VPlan &Plan, Loop *OrigLoop, const TargetLibraryInfo *TLI,
                   const TargetTransformInfo *TTI,
@@ -155,7 +159,7 @@ public:
                : std::make_optional(It->second);
   }
 
-  void addScaledReductionExitInstrs(SmallVector<PartialReductionChain> Chains);
+  void collectScaledReductions(VFRange &Range);
 
   /// Create and return a widened recipe for \p I if one can be created within
   /// the given VF \p Range.
@@ -163,8 +167,8 @@ public:
                                        ArrayRef<VPValue *> Operands,
                                        VFRange &Range, VPBasicBlock *VPBB);
 
-  // Create and return a partial reduction recipe for a reduction instruction
-  // along with binary operation and reduction phi operands.
+  /// Create and return a partial reduction recipe for a reduction instruction
+  /// along with binary operation and reduction phi operands.
   VPRecipeBase *tryToCreatePartialReduction(Instruction *Reduction,
                                             ArrayRef<VPValue *> Operands);
 
