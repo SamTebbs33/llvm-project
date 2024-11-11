@@ -1206,4 +1206,4 @@ for.exit:                        ; preds = %for.body
 !8 = !{!"llvm.loop.mustprogress"}
 !9 = !{!"llvm.loop.vectorize.predicate.enable", i1 true}
 !10 = !{!"llvm.loop.vectorize.enable", i1 true}
-attributes #0 = { nofree norecurse nosync nounwind memory(argmem: readwrite) uwtable vscale_range(1,16) "target-features"="+sve" }
+attributes #0 = { vscale_range(1,16) "target-features"="+sve" }
