@@ -164,6 +164,8 @@ public:
                : std::make_optional(It->second);
   }
 
+  /// Find all possible partial reductions in the loop and track all of those
+  /// that are valid so recipes can be formed later.
   void collectScaledReductions(VFRange &Range);
 
   /// Create and return a widened recipe for \p I if one can be created within
