@@ -8820,18 +8820,15 @@ std::optional<PartialReductionChain> VPRecipeBuilder::getScaledReduction(
   if (!BinOp || !BinOp->hasOneUse())
     return std::nullopt;
 
-  auto IsSextOrZext = [](Instruction *I) {
-    return I && (I->getOpcode() == Instruction::ZExt ||
-                 I->getOpcode() == Instruction::SExt);
-  };
-
-  auto *ExtA = dyn_cast<Instruction>(BinOp->getOperand(0));
-  auto *ExtB = dyn_cast<Instruction>(BinOp->getOperand(1));
-  if (!IsSextOrZext(ExtA) || !IsSextOrZext(ExtB))
+  using namespace llvm::PatternMatch;
+  Value *A, *B;
+  if (!match(BinOp->getOperand(0), m_ZExtOrSExt(m_Value(A))) ||
+      !match(BinOp->getOperand(1), m_ZExtOrSExt(m_Value(B))))
     return std::nullopt;
 
-  Value *A = ExtA->getOperand(0);
-  Value *B = ExtB->getOperand(0);
+  Instruction *ExtA = cast<Instruction>(BinOp->getOperand(0));
+  Instruction *ExtB = cast<Instruction>(BinOp->getOperand(1));
+
   // Check that the extends extend from the same type
   if (A->getType() != B->getType())
     return std::nullopt;
@@ -8850,7 +8847,7 @@ std::optional<PartialReductionChain> VPRecipeBuilder::getScaledReduction(
   Chain.ExtendA = ExtA;
   Chain.ExtendB = ExtB;
   Chain.ScaleFactor = TargetScaleFactor;
-  Chain.BinOp = dyn_cast<Instruction>(Op);
+  Chain.BinOp = BinOp;
 
   if (LoopVectorizationPlanner::getDecisionAndClampRange(
           [&](ElementCount VF) {
