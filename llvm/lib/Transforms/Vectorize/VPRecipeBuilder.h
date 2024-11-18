@@ -28,6 +28,11 @@ class TargetTransformInfo;
 /// Designed to match: reduction_bin_op (bin_op (extend (A), (extend (B))),
 /// accumulator).
 struct PartialReductionChain {
+  PartialReductionChain(Instruction *Reduction, Instruction *ExtendA,
+                        Instruction *ExtendB, Instruction *BinOp,
+                        unsigned ScaleFactor)
+      : Reduction(Reduction), ExtendA(ExtendA), ExtendB(ExtendB), BinOp(BinOp),
+        ScaleFactor(ScaleFactor) {}
   /// The top-level binary operation that forms the reduction to a scalar
   /// after the loop body.
   Instruction *Reduction;

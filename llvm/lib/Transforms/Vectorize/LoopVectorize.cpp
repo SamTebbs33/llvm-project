@@ -8842,12 +8842,8 @@ std::optional<PartialReductionChain> VPRecipeBuilder::getScaledReduction(
   TTI::PartialReductionExtendKind OpBExtend =
       TargetTransformInfo::getPartialReductionExtendKind(ExtB);
 
-  PartialReductionChain Chain;
-  Chain.Reduction = Rdx.getLoopExitInstr();
-  Chain.ExtendA = ExtA;
-  Chain.ExtendB = ExtB;
-  Chain.ScaleFactor = TargetScaleFactor;
-  Chain.BinOp = BinOp;
+  PartialReductionChain Chain(Rdx.getLoopExitInstr(), ExtA, ExtB, BinOp,
+                              TargetScaleFactor);
 
   if (LoopVectorizationPlanner::getDecisionAndClampRange(
           [&](ElementCount VF) {
