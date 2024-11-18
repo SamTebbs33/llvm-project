@@ -8787,8 +8787,7 @@ void VPRecipeBuilder::collectScaledReductions(VFRange &Range) {
 
   // Check if each use of a chain's two extends is a partial reduction
   // and only add those those that don't have non-partial reduction users.
-  for (auto It : PartialReductionChains) {
-    PartialReductionChain Chain = It;
+  for (auto Chain : PartialReductionChains) {
     if (ExtendIsOnlyUsedByPartialReductions(Chain.ExtendA) &&
         ExtendIsOnlyUsedByPartialReductions(Chain.ExtendB))
       ScaledReductionExitInstrs.insert(std::make_pair(Chain.Reduction, Chain));
