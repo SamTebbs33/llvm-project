@@ -40,6 +40,7 @@ struct PartialReductionChain {
   Instruction *ExtendA;
   Instruction *ExtendB;
 
+  /// The binary operation using the extends that is then reduced
   Instruction *BinOp;
 
   /// The scaling factor between the size of the reduction type and the
