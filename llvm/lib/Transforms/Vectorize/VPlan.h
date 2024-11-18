@@ -2369,9 +2369,6 @@ class VPReductionPHIRecipe : public VPHeaderPHIRecipe,
   /// The phi is part of an ordered reduction. Requires IsInLoop to be true.
   bool IsOrdered;
 
-  /// The scaling difference between the size of the output of the entire
-  /// reduction and the size of the input.
-
   /// When expanding the reduction PHI, the plan's VF element count is divided
   /// by this factor to form the reduction phi's VF.
   unsigned VFScaleFactor = 1;

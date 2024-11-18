@@ -29,10 +29,9 @@ class TargetTransformInfo;
 /// accumulator).
 struct PartialReductionChain {
   PartialReductionChain(Instruction *Reduction, Instruction *ExtendA,
-                        Instruction *ExtendB, Instruction *BinOp,
-                        unsigned ScaleFactor)
-      : Reduction(Reduction), ExtendA(ExtendA), ExtendB(ExtendB), BinOp(BinOp),
-        ScaleFactor(ScaleFactor) {}
+                        Instruction *ExtendB, Instruction *BinOp)
+      : Reduction(Reduction), ExtendA(ExtendA), ExtendB(ExtendB), BinOp(BinOp) {
+  }
   /// The top-level binary operation that forms the reduction to a scalar
   /// after the loop body.
   Instruction *Reduction;
@@ -42,10 +41,6 @@ struct PartialReductionChain {
 
   /// The binary operation using the extends that is then reduced
   Instruction *BinOp;
-
-  /// The scaling factor between the size of the reduction type and the
-  /// (possibly extended) inputs.
-  unsigned ScaleFactor;
 };
 
 /// Helper class to create VPRecipies from IR instructions.
@@ -92,8 +87,8 @@ class VPRecipeBuilder {
   SmallVector<VPHeaderPHIRecipe *, 4> PhisToFix;
 
   /// The set of reduction exit instructions that will be scaled to
-  /// a smaller VF via partial reductions.
-  DenseMap<const Instruction *, PartialReductionChain>
+  /// a smaller VF via partial reductions. paired with the scaling factor.
+  DenseMap<const Instruction *, std::pair<PartialReductionChain, unsigned>>
       ScaledReductionExitInstrs;
 
   /// Check if \p I can be widened at the start of \p Range and possibly
@@ -144,7 +139,7 @@ class VPRecipeBuilder {
   VPHistogramRecipe *tryToWidenHistogram(const HistogramInfo *HI,
                                          ArrayRef<VPValue *> Operands);
 
-  std::optional<PartialReductionChain>
+  std::optional<std::pair<PartialReductionChain, unsigned>>
   getScaledReduction(PHINode *PHI, const RecurrenceDescriptor &Rdx,
                      VFRange &Range);
 
@@ -157,7 +152,7 @@ public:
       : Plan(Plan), OrigLoop(OrigLoop), TLI(TLI), TTI(TTI), Legal(Legal),
         CM(CM), PSE(PSE), Builder(Builder) {}
 
-  std::optional<PartialReductionChain>
+  std::optional<std::pair<PartialReductionChain, unsigned>>
   getScaledReductionForInstr(const Instruction *ExitInst) {
     auto It = ScaledReductionExitInstrs.find(ExitInst);
     return It == ScaledReductionExitInstrs.end()

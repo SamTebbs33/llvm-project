@@ -8761,11 +8761,12 @@ VPReplicateRecipe *VPRecipeBuilder::handleReplication(Instruction *I,
 
 void VPRecipeBuilder::collectScaledReductions(VFRange &Range) {
   // Find all possible partial reductions.
-  SmallVector<PartialReductionChain, 1> PartialReductionChains;
+  SmallVector<std::pair<PartialReductionChain, unsigned>, 1>
+      PartialReductionChains;
   for (const auto &[Phi, RdxDesc] : Legal->getReductionVars())
-    if (std::optional<PartialReductionChain> Chain =
+    if (std::optional<std::pair<PartialReductionChain, unsigned>> Pair =
             getScaledReduction(Phi, RdxDesc, Range))
-      PartialReductionChains.push_back(*Chain);
+      PartialReductionChains.push_back(*Pair);
 
   // A partial reduction is invalid if any of its extends are used by
   // something that isn't another partial reduction. This is because the
@@ -8774,8 +8775,8 @@ void VPRecipeBuilder::collectScaledReductions(VFRange &Range) {
   // Build up a set of partial reduction bin ops for efficient use checking.
   SmallSet<User *, 4> PartialReductionBinOps;
   for (auto It : PartialReductionChains) {
-    if (It.BinOp)
-      PartialReductionBinOps.insert(It.BinOp);
+    if (It.first.BinOp)
+      PartialReductionBinOps.insert(It.first.BinOp);
   }
 
   auto ExtendIsOnlyUsedByPartialReductions =
@@ -8787,10 +8788,11 @@ void VPRecipeBuilder::collectScaledReductions(VFRange &Range) {
 
   // Check if each use of a chain's two extends is a partial reduction
   // and only add those those that don't have non-partial reduction users.
-  for (auto Chain : PartialReductionChains) {
+  for (auto Pair : PartialReductionChains) {
+    PartialReductionChain Chain = Pair.first;
     if (ExtendIsOnlyUsedByPartialReductions(Chain.ExtendA) &&
         ExtendIsOnlyUsedByPartialReductions(Chain.ExtendB))
-      ScaledReductionExitInstrs.insert(std::make_pair(Chain.Reduction, Chain));
+      ScaledReductionExitInstrs.insert(std::make_pair(Chain.Reduction, Pair));
   }
 }
 
@@ -8798,8 +8800,10 @@ void VPRecipeBuilder::collectScaledReductions(VFRange &Range) {
 /// operation with a wider per-iteration input VF and narrower PHI VF.
 /// Returns a struct containing the ratio between the two VFs and other cached
 /// information, or null if no scalable reduction was found.
-std::optional<PartialReductionChain> VPRecipeBuilder::getScaledReduction(
-    PHINode *PHI, const RecurrenceDescriptor &Rdx, VFRange &Range) {
+std::optional<std::pair<PartialReductionChain, unsigned>>
+VPRecipeBuilder::getScaledReduction(PHINode *PHI,
+                                    const RecurrenceDescriptor &Rdx,
+                                    VFRange &Range) {
   // TODO: Allow scaling reductions when predicating. The select at
   // the end of the loop chooses between the phi value and most recent
   // reduction result, both of which have different VFs to the active lane
@@ -8833,17 +8837,16 @@ std::optional<PartialReductionChain> VPRecipeBuilder::getScaledReduction(
   if (A->getType() != B->getType())
     return std::nullopt;
 
-  unsigned TargetScaleFactor =
-      PHI->getType()->getPrimitiveSizeInBits().getKnownScalarFactor(
-          A->getType()->getPrimitiveSizeInBits());
-
   TTI::PartialReductionExtendKind OpAExtend =
       TargetTransformInfo::getPartialReductionExtendKind(ExtA);
   TTI::PartialReductionExtendKind OpBExtend =
       TargetTransformInfo::getPartialReductionExtendKind(ExtB);
 
-  PartialReductionChain Chain(Rdx.getLoopExitInstr(), ExtA, ExtB, BinOp,
-                              TargetScaleFactor);
+  PartialReductionChain Chain(Rdx.getLoopExitInstr(), ExtA, ExtB, BinOp);
+
+  unsigned TargetScaleFactor =
+      PHI->getType()->getPrimitiveSizeInBits().getKnownScalarFactor(
+          A->getType()->getPrimitiveSizeInBits());
 
   if (LoopVectorizationPlanner::getDecisionAndClampRange(
           [&](ElementCount VF) {
@@ -8853,7 +8856,7 @@ std::optional<PartialReductionChain> VPRecipeBuilder::getScaledReduction(
             return Cost.isValid();
           },
           Range))
-    return Chain;
+    return std::make_pair(Chain, TargetScaleFactor);
 
   return std::nullopt;
 }
@@ -8884,9 +8887,9 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
              Phi->getIncomingValueForBlock(OrigLoop->getLoopPreheader()));
 
       // If the PHI is used by a partial reduction, set the scale factor
-      std::optional<PartialReductionChain> Chain =
+      std::optional<std::pair<PartialReductionChain, unsigned>> Pair =
           getScaledReductionForInstr(RdxDesc.getLoopExitInstr());
-      unsigned ScaleFactor = Chain ? Chain->ScaleFactor : 1;
+      unsigned ScaleFactor = Pair ? Pair->second : 1;
       PhiRecipe = new VPReductionPHIRecipe(
           Phi, RdxDesc, *StartV, CM.isInLoopReduction(Phi),
           CM.useOrderedReductions(RdxDesc), ScaleFactor);
