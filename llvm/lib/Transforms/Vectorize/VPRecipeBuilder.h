@@ -139,6 +139,10 @@ class VPRecipeBuilder {
   VPHistogramRecipe *tryToWidenHistogram(const HistogramInfo *HI,
                                          ArrayRef<VPValue *> Operands);
 
+  /// Examines reduction operations to see if the target can use a cheaper
+  /// operation with a wider per-iteration input VF and narrower PHI VF.
+  /// Returns a struct containing the ratio between the two VFs and other cached
+  /// information, or null if no scalable reduction was found.
   std::optional<std::pair<PartialReductionChain, unsigned>>
   getScaledReduction(PHINode *PHI, const RecurrenceDescriptor &Rdx,
                      VFRange &Range);
