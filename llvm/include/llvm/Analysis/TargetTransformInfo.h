@@ -2116,6 +2116,13 @@ public:
   /// \return if target want to issue a prefetch in address space \p AS.
   virtual bool shouldPrefetchAddressSpace(unsigned AS) const = 0;
 
+  /// \return The cost of a partial reduction, which is a reduction from a
+  /// vector to another vector with fewer elements of larger size. They are
+  /// represented by the llvm.experimental.partial.reduce.add intrinsic, which
+  /// takes an accumulator and a binary operation operand that itself is fed by
+  /// two extends. An example of an operation that uses a partial reduction is a
+  /// dot product, which reduces a vector to another of 4 times larger but fewer
+  /// elements.
   virtual InstructionCost
   getPartialReductionCost(unsigned Opcode, Type *InputType, Type *AccumType,
                           ElementCount VF, PartialReductionExtendKind OpAExtend,
