@@ -8776,9 +8776,8 @@ void VPRecipeBuilder::collectScaledReductions(VFRange &Range) {
 
   // Build up a set of partial reduction bin ops for efficient use checking.
   SmallSet<User *, 4> PartialReductionBinOps;
-  for (auto It : PartialReductionChains) {
-    if (It.first.BinOp)
-      PartialReductionBinOps.insert(It.first.BinOp);
+  for (const auto &[PartialRdx, _] : PartialReductionChains) {
+    PartialReductionBinOps.insert(PartialRdx.BinOp);
   }
 
   auto ExtendIsOnlyUsedByPartialReductions =
@@ -8789,7 +8788,7 @@ void VPRecipeBuilder::collectScaledReductions(VFRange &Range) {
       };
 
   // Check if each use of a chain's two extends is a partial reduction
-  // and only add those those that don't have non-partial reduction users.
+  // and only add those that don't have non-partial reduction users.
   for (auto Pair : PartialReductionChains) {
     PartialReductionChain Chain = Pair.first;
     if (ExtendIsOnlyUsedByPartialReductions(Chain.ExtendA) &&
@@ -8798,10 +8797,6 @@ void VPRecipeBuilder::collectScaledReductions(VFRange &Range) {
   }
 }
 
-/// Examines reduction operations to see if the target can use a cheaper
-/// operation with a wider per-iteration input VF and narrower PHI VF.
-/// Returns a struct containing the ratio between the two VFs and other cached
-/// information, or null if no scalable reduction was found.
 std::optional<std::pair<PartialReductionChain, unsigned>>
 VPRecipeBuilder::getScaledReduction(PHINode *PHI,
                                     const RecurrenceDescriptor &Rdx,
@@ -8821,7 +8816,6 @@ VPRecipeBuilder::getScaledReduction(PHINode *PHI,
   if (Op == PHI)
     Op = Update->getOperand(1);
 
-  // Match dot product pattern
   auto *BinOp = dyn_cast<BinaryOperator>(Op);
   if (!BinOp || !BinOp->hasOneUse())
     return std::nullopt;
@@ -8835,7 +8829,7 @@ VPRecipeBuilder::getScaledReduction(PHINode *PHI,
   Instruction *ExtA = cast<Instruction>(BinOp->getOperand(0));
   Instruction *ExtB = cast<Instruction>(BinOp->getOperand(1));
 
-  // Check that the extends extend from the same type
+  // Check that the extends extend from the same type.
   if (A->getType() != B->getType())
     return std::nullopt;
 
@@ -8962,8 +8956,7 @@ VPRecipeBuilder::tryToCreatePartialReduction(Instruction *Reduction,
 
   SmallVector<VPValue *, 2> OrderedOperands = {BinOp, Phi};
   return new VPPartialReductionRecipe(
-      Reduction->getOpcode(),
-      make_range(OrderedOperands.begin(), OrderedOperands.end()));
+      *Reduction, make_range(OrderedOperands.begin(), OrderedOperands.end()));
 }
 
 void LoopVectorizationPlanner::buildVPlansWithVPRecipes(ElementCount MinVF,

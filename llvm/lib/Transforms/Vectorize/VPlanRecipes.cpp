@@ -294,24 +294,39 @@ InstructionCost VPRecipeBase::computeCost(ElementCount VF,
 InstructionCost
 VPPartialReductionRecipe::computeCost(ElementCount VF,
                                       VPCostContext &Ctx) const {
-  auto *BinOp = cast<BinaryOperator>(getOperand(0)->getUnderlyingValue());
-  auto *PhiR = cast<VPReductionPHIRecipe>(getOperand(1)->getDefiningRecipe());
-  auto *Phi = cast<PHINode>(PhiR->getUnderlyingValue());
-  auto *ExtA = cast<Instruction>(BinOp->getOperand(0));
-  auto *ExtB = cast<Instruction>(BinOp->getOperand(1));
-  Value *A = ExtA->getOperand(0);
-  return Ctx.TTI.getPartialReductionCost(
-      Opcode, A->getType(), Phi->getType(), VF,
-      TargetTransformInfo::getPartialReductionExtendKind(ExtA),
-      TargetTransformInfo::getPartialReductionExtendKind(ExtB),
-      std::make_optional(BinOp->getOpcode()));
+  std::optional<unsigned> Opcode = std::nullopt;
+  VPRecipeBase *BinOpR = getOperand(0)->getDefiningRecipe();
+  if (auto *WidenR = dyn_cast<VPWidenRecipe>(BinOpR))
+    Opcode = std::make_optional(WidenR->getOpcode());
+
+  VPRecipeBase *ExtAR = BinOpR->getOperand(0)->getDefiningRecipe();
+  VPRecipeBase *ExtBR = BinOpR->getOperand(1)->getDefiningRecipe();
+
+  auto GetExtendKind = [](VPRecipeBase *R) {
+    auto *WidenCastR = dyn_cast<VPWidenCastRecipe>(R);
+    if (!WidenCastR)
+      return TargetTransformInfo::PR_None;
+    if (WidenCastR->getOpcode() == Instruction::CastOps::ZExt)
+      return TargetTransformInfo::PR_ZeroExtend;
+    if (WidenCastR->getOpcode() == Instruction::CastOps::SExt)
+      return TargetTransformInfo::PR_SignExtend;
+    return TargetTransformInfo::PR_None;
+  };
+
+  auto *PhiType = Ctx.Types.inferScalarType(getOperand(1));
+  auto *ExtTy = Ctx.Types.inferScalarType(ExtAR->getOperand(0));
+
+  return Ctx.TTI.getPartialReductionCost(ReductionInst.getOpcode(), ExtTy,
+                                         PhiType, VF, GetExtendKind(ExtAR),
+                                         GetExtendKind(ExtBR), Opcode);
 }
 
 void VPPartialReductionRecipe::execute(VPTransformState &State) {
   State.setDebugLocFrom(getDebugLoc());
   auto &Builder = State.Builder;
 
-  assert(Opcode == Instruction::Add && "Unhandled partial reduction opcode");
+  assert(ReductionInst.getOpcode() == Instruction::Add &&
+         "Unhandled partial reduction opcode");
 
   Value *BinOpVal = State.get(getOperand(0));
   Value *PhiVal = State.get(getOperand(1));
@@ -322,7 +337,6 @@ void VPPartialReductionRecipe::execute(VPTransformState &State) {
   CallInst *V = Builder.CreateIntrinsic(
       RetTy, Intrinsic::experimental_vector_partial_reduce_add,
       {PhiVal, BinOpVal}, nullptr, Twine("partial.reduce"));
-  setFlags(V);
 
   State.set(this, V);
   State.addMetadata(V, dyn_cast_or_null<Instruction>(getUnderlyingValue()));
@@ -333,8 +347,7 @@ void VPPartialReductionRecipe::print(raw_ostream &O, const Twine &Indent,
                                      VPSlotTracker &SlotTracker) const {
   O << Indent << "PARTIAL-REDUCE ";
   printAsOperand(O, SlotTracker);
-  O << " = " << Instruction::getOpcodeName(Opcode);
-  printFlags(O);
+  O << " = " << Instruction::getOpcodeName(ReductionInst.getOpcode()) << " ";
   printOperands(O, SlotTracker);
 }
 #endif

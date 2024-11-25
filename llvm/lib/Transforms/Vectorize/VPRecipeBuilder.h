@@ -39,7 +39,7 @@ struct PartialReductionChain {
   Instruction *ExtendA;
   Instruction *ExtendB;
 
-  /// The binary operation using the extends that is then reduced
+  /// The binary operation using the extends that is then reduced.
   Instruction *BinOp;
 };
 
@@ -54,7 +54,7 @@ class VPRecipeBuilder {
   /// Target Library Info.
   const TargetLibraryInfo *TLI;
 
-  // Target Transform Info
+  // Target Transform Info.
   const TargetTransformInfo *TTI;
 
   /// The legality analysis.
@@ -87,7 +87,7 @@ class VPRecipeBuilder {
   SmallVector<VPHeaderPHIRecipe *, 4> PhisToFix;
 
   /// The set of reduction exit instructions that will be scaled to
-  /// a smaller VF via partial reductions. paired with the scaling factor.
+  /// a smaller VF via partial reductions, paired with the scaling factor.
   DenseMap<const Instruction *, std::pair<PartialReductionChain, unsigned>>
       ScaledReductionExitInstrs;
 
@@ -141,8 +141,9 @@ class VPRecipeBuilder {
 
   /// Examines reduction operations to see if the target can use a cheaper
   /// operation with a wider per-iteration input VF and narrower PHI VF.
-  /// Returns a struct containing the ratio between the two VFs and other cached
-  /// information, or null if no scalable reduction was found.
+  /// Returns null if no scaled reduction was found, otherwise a pair with a
+  /// struct containing reduction information and the scaling factor between the
+  /// number of elements in the input and output.
   std::optional<std::pair<PartialReductionChain, unsigned>>
   getScaledReduction(PHINode *PHI, const RecurrenceDescriptor &Rdx,
                      VFRange &Range);

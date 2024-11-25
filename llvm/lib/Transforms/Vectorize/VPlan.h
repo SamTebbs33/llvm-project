@@ -2426,20 +2426,21 @@ public:
 /// next accumulator. After the loop body, the accumulator is reduced to a
 /// scalar value.
 class VPPartialReductionRecipe : public VPRecipeWithIRFlags {
-  unsigned Opcode;
+  Instruction &ReductionInst;
 
 public:
   template <typename IterT>
-  VPPartialReductionRecipe(unsigned ReductionOpcode,
+  VPPartialReductionRecipe(Instruction &ReductionInst,
                            iterator_range<IterT> Operands)
-      : VPRecipeWithIRFlags(VPDef::VPPartialReductionSC, Operands),
-        Opcode(ReductionOpcode) {
+      : VPRecipeWithIRFlags(VPDef::VPPartialReductionSC, Operands,
+                            ReductionInst),
+        ReductionInst(ReductionInst) {
     assert(isa<VPReductionPHIRecipe>(getOperand(1)->getDefiningRecipe()) &&
            "Unexpected operand order for partial reduction recipe");
   }
   ~VPPartialReductionRecipe() override = default;
   VPPartialReductionRecipe *clone() override {
-    return new VPPartialReductionRecipe(Opcode, operands());
+    return new VPPartialReductionRecipe(ReductionInst, operands());
   }
 
   VP_CLASSOF_IMPL(VPDef::VPPartialReductionSC)

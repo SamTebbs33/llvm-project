@@ -78,7 +78,7 @@ define i32 @print_partial_reduction(ptr %a, ptr %b) {
 ; CHECK-NEXT: <x1> vector loop: {
 ; CHECK-NEXT: vector.body:
 ; CHECK-NEXT:   EMIT vp<[[CAN_IV:%.+]]> = CANONICAL-INDUCTION ir<0>, vp<[[CAN_IV_NEXT:%.+]]>
-; CHECK-NEXT:   WIDEN-REDUCTION-PHI ir<[[ACC:%.+]]> = phi ir<0>, vp<%6> (VF scaled by 1/4)
+; CHECK-NEXT:   WIDEN-REDUCTION-PHI ir<[[ACC:%.+]]> = phi ir<0>, ir<[[REDUCE:%.+]]> (VF scaled by 1/4)
 ; CHECK-NEXT:   vp<[[STEPS:%.+]]> = SCALAR-STEPS vp<[[CAN_IV]]>, ir<1>
 ; CHECK-NEXT:   CLONE ir<%gep.a> = getelementptr ir<%a>, vp<[[STEPS]]>
 ; CHECK-NEXT:   vp<[[PTR_A:%.+]]> = vector-pointer ir<%gep.a>
@@ -89,7 +89,7 @@ define i32 @print_partial_reduction(ptr %a, ptr %b) {
 ; CHECK-NEXT:   WIDEN ir<%load.b> = load vp<[[PTR_B]]>
 ; CHECK-NEXT:   WIDEN-CAST ir<%ext.b> = zext ir<%load.b> to i32
 ; CHECK-NEXT:   WIDEN ir<%mul> = mul ir<%ext.b>, ir<%ext.a>
-; CHECK-NEXT:   PARTIAL-REDUCE vp<%6> = add ir<%mul>, ir<[[ACC]]>
+; CHECK-NEXT:   PARTIAL-REDUCE ir<[[REDUCE]]> = add ir<%mul>, ir<[[ACC]]>
 ; CHECK-NEXT:   EMIT vp<[[CAN_IV_NEXT]]> = add nuw vp<[[CAN_IV]]>, vp<[[VFxUF]]>
 ; CHECK-NEXT:   EMIT branch-on-count vp<[[CAN_IV_NEXT]]>, vp<[[VEC_TC]]>
 ; CHECK-NEXT: No successors
@@ -97,14 +97,14 @@ define i32 @print_partial_reduction(ptr %a, ptr %b) {
 ; CHECK-NEXT: Successor(s): middle.block
 ; CHECK-EMPTY:
 ; CHECK-NEXT: middle.block:
-; CHECK-NEXT:   EMIT vp<[[RED_RESULT:%.+]]> = compute-reduction-result ir<[[ACC]]>, vp<%6>
+; CHECK-NEXT:   EMIT vp<[[RED_RESULT:%.+]]> = compute-reduction-result ir<[[ACC]]>, ir<[[REDUCE]]>
 ; CHECK-NEXT:   EMIT vp<[[EXTRACT:%.+]]> = extract-from-end vp<[[RED_RESULT]]>, ir<1>
 ; CHECK-NEXT:   EMIT vp<[[CMP:%.+]]> = icmp eq ir<0>, vp<%1>
 ; CHECK-NEXT:   EMIT branch-on-cond vp<[[CMP]]>
 ; CHECK-NEXT: Successor(s): ir-bb<exit>, scalar.ph
 ; CHECK-EMPTY:
 ; CHECK-NEXT: ir-bb<exit>:
-; CHECK-NEXT:   IR   %add.lcssa = phi i32 [ %add, %for.body ] (extra operand: vp<%9>)
+; CHECK-NEXT:   IR   %add.lcssa = phi i32 [ %add, %for.body ] (extra operand: vp<[[EXTRACT]]>)
 ; CHECK-NEXT: No successors
 ; CHECK-EMPTY:
 ; CHECK-NEXT: scalar.ph:

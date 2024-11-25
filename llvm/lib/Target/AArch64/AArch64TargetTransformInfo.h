@@ -379,7 +379,6 @@ public:
     if (VF.isFixed() && !ST->isNeonAvailable() && !ST->hasDotProd())
       return Invalid;
 
-    // FIXME: There should be a nicer way of doing this?
     if (InputEVT == MVT::i8) {
       switch (VF.getKnownMinValue()) {
       default:
