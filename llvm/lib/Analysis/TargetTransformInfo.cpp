@@ -977,6 +977,15 @@ InstructionCost TargetTransformInfo::getShuffleCost(
   return Cost;
 }
 
+TargetTransformInfo::PartialReductionExtendKind
+TargetTransformInfo::getPartialReductionExtendKind(Instruction *I) {
+  if (isa<SExtInst>(I))
+    return PR_SignExtend;
+  if (isa<ZExtInst>(I))
+    return PR_ZeroExtend;
+  return PR_None;
+}
+
 TTI::CastContextHint
 TargetTransformInfo::getCastContextHint(const Instruction *I) {
   if (!I)
