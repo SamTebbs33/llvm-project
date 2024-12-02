@@ -8956,7 +8956,7 @@ VPRecipeBuilder::tryToCreatePartialReduction(Instruction *Reduction,
 
   SmallVector<VPValue *, 2> OrderedOperands = {BinOp, Phi};
   return new VPPartialReductionRecipe(
-      *Reduction, make_range(OrderedOperands.begin(), OrderedOperands.end()));
+      Reduction, make_range(OrderedOperands.begin(), OrderedOperands.end()));
 }
 
 void LoopVectorizationPlanner::buildVPlansWithVPRecipes(ElementCount MinVF,
