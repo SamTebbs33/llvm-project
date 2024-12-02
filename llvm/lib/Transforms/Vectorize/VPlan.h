@@ -2433,7 +2433,7 @@ public:
   VPPartialReductionRecipe(Instruction &ReductionInst,
                            iterator_range<IterT> Operands)
       : VPSingleDefRecipe(VPDef::VPPartialReductionSC, Operands,
-                            &ReductionInst),
+                          &ReductionInst),
         ReductionInst(ReductionInst) {
     assert(isa<VPReductionPHIRecipe>(getOperand(1)->getDefiningRecipe()) &&
            "Unexpected operand order for partial reduction recipe");
