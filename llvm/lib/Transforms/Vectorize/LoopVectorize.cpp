@@ -8882,7 +8882,7 @@ VPRecipeBuilder::tryToCreateWidenRecipe(Instruction *Instr,
       assert(RdxDesc.getRecurrenceStartValue() ==
              Phi->getIncomingValueForBlock(OrigLoop->getLoopPreheader()));
 
-      // If the PHI is used by a partial reduction, set the scale factor
+      // If the PHI is used by a partial reduction, set the scale factor.
       std::optional<std::pair<PartialReductionChain, unsigned>> Pair =
           getScaledReductionForInstr(RdxDesc.getLoopExitInstr());
       unsigned ScaleFactor = Pair ? Pair->second : 1;

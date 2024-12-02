@@ -2425,15 +2425,15 @@ public:
 /// vector operand are added together and passed to the next iteration as the
 /// next accumulator. After the loop body, the accumulator is reduced to a
 /// scalar value.
-class VPPartialReductionRecipe : public VPRecipeWithIRFlags {
+class VPPartialReductionRecipe : public VPSingleDefRecipe {
   Instruction &ReductionInst;
 
 public:
   template <typename IterT>
   VPPartialReductionRecipe(Instruction &ReductionInst,
                            iterator_range<IterT> Operands)
-      : VPRecipeWithIRFlags(VPDef::VPPartialReductionSC, Operands,
-                            ReductionInst),
+      : VPSingleDefRecipe(VPDef::VPPartialReductionSC, Operands,
+                            &ReductionInst),
         ReductionInst(ReductionInst) {
     assert(isa<VPReductionPHIRecipe>(getOperand(1)->getDefiningRecipe()) &&
            "Unexpected operand order for partial reduction recipe");
@@ -2445,7 +2445,7 @@ public:
 
   VP_CLASSOF_IMPL(VPDef::VPPartialReductionSC)
 
-  /// Generate the reduction in the loop
+  /// Generate the reduction in the loop.
   void execute(VPTransformState &State) override;
 
   /// Return the cost of this VPPartialReductionRecipe.
