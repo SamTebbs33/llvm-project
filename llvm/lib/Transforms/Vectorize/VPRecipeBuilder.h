@@ -21,8 +21,8 @@ namespace llvm {
 class LoopVectorizationLegality;
 class LoopVectorizationCostModel;
 class TargetLibraryInfo;
-struct HistogramInfo;
 class TargetTransformInfo;
+struct HistogramInfo;
 
 /// A chain of instructions that form a partial reduction.
 /// Designed to match: reduction_bin_op (bin_op (extend (A), (extend (B))),
