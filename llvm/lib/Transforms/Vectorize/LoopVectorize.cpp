@@ -8953,9 +8953,8 @@ VPRecipeBuilder::tryToCreatePartialReduction(Instruction *Reduction,
   if (isa<VPReductionPHIRecipe>(BinOp->getDefiningRecipe()))
     std::swap(BinOp, Phi);
 
-  SmallVector<VPValue *, 2> OrderedOperands = {BinOp, Phi};
-  return new VPPartialReductionRecipe(
-      Reduction, make_range(OrderedOperands.begin(), OrderedOperands.end()));
+  return new VPPartialReductionRecipe(Reduction->getOpcode(), BinOp, Phi,
+                                      Reduction);
 }
 
 void LoopVectorizationPlanner::buildVPlansWithVPRecipes(ElementCount MinVF,

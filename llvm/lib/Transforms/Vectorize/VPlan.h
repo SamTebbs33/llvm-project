@@ -2426,19 +2426,24 @@ public:
 /// next accumulator. After the loop body, the accumulator is reduced to a
 /// scalar value.
 class VPPartialReductionRecipe : public VPSingleDefRecipe {
+  unsigned Opcode;
 
 public:
-  template <typename IterT>
-  VPPartialReductionRecipe(Instruction *ReductionInst,
-                           iterator_range<IterT> Operands)
-      : VPSingleDefRecipe(VPDef::VPPartialReductionSC, Operands,
-                          ReductionInst) {
+  VPPartialReductionRecipe(Instruction *ReductionInst, VPValue *Op0,
+                           VPValue *Op1)
+      : VPPartialReductionRecipe(ReductionInst->getOpcode(), Op0, Op1,
+                                 ReductionInst) {}
+  VPPartialReductionRecipe(unsigned Opcode, VPValue *Op0, VPValue *Op1,
+                           Instruction *ReductionInst = nullptr)
+      : VPSingleDefRecipe(VPDef::VPPartialReductionSC,
+                          ArrayRef<VPValue *>({Op0, Op1}), ReductionInst),
+        Opcode(Opcode) {
     assert(isa<VPReductionPHIRecipe>(getOperand(1)->getDefiningRecipe()) &&
            "Unexpected operand order for partial reduction recipe");
   }
   ~VPPartialReductionRecipe() override = default;
   VPPartialReductionRecipe *clone() override {
-    return new VPPartialReductionRecipe(getUnderlyingInstr(), operands());
+    return new VPPartialReductionRecipe(Opcode, getOperand(0), getOperand(1));
   }
 
   VP_CLASSOF_IMPL(VPDef::VPPartialReductionSC)
@@ -2449,6 +2454,9 @@ public:
   /// Return the cost of this VPPartialReductionRecipe.
   InstructionCost computeCost(ElementCount VF,
                               VPCostContext &Ctx) const override;
+
+  /// Get the binary op's opcode.
+  unsigned getOpcode() const { return Opcode; }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   /// Print the recipe.

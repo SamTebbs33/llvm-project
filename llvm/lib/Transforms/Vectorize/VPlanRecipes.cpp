@@ -316,16 +316,16 @@ VPPartialReductionRecipe::computeCost(ElementCount VF,
   auto *PhiType = Ctx.Types.inferScalarType(getOperand(1));
   auto *ExtTy = Ctx.Types.inferScalarType(ExtAR->getOperand(0));
 
-  return Ctx.TTI.getPartialReductionCost(
-      getUnderlyingInstr()->getOpcode(), ExtTy, PhiType, VF,
-      GetExtendKind(ExtAR), GetExtendKind(ExtBR), Opcode);
+  return Ctx.TTI.getPartialReductionCost(getOpcode(), ExtTy, PhiType, VF,
+                                         GetExtendKind(ExtAR),
+                                         GetExtendKind(ExtBR), Opcode);
 }
 
 void VPPartialReductionRecipe::execute(VPTransformState &State) {
   State.setDebugLocFrom(getDebugLoc());
   auto &Builder = State.Builder;
 
-  assert(getUnderlyingInstr()->getOpcode() == Instruction::Add &&
+  assert(getOpcode() == Instruction::Add &&
          "Unhandled partial reduction opcode");
 
   Value *BinOpVal = State.get(getOperand(0));
@@ -339,7 +339,7 @@ void VPPartialReductionRecipe::execute(VPTransformState &State) {
       {PhiVal, BinOpVal}, nullptr, Twine("partial.reduce"));
 
   State.set(this, V);
-  State.addMetadata(V, getUnderlyingInstr());
+  State.addMetadata(V, dyn_cast_or_null<Instruction>(getUnderlyingValue()));
 }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
@@ -347,8 +347,7 @@ void VPPartialReductionRecipe::print(raw_ostream &O, const Twine &Indent,
                                      VPSlotTracker &SlotTracker) const {
   O << Indent << "PARTIAL-REDUCE ";
   printAsOperand(O, SlotTracker);
-  O << " = " << Instruction::getOpcodeName(getUnderlyingInstr()->getOpcode())
-    << " ";
+  O << " = " << Instruction::getOpcodeName(getOpcode()) << " ";
   printOperands(O, SlotTracker);
 }
 #endif
