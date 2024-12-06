@@ -8776,9 +8776,8 @@ void VPRecipeBuilder::collectScaledReductions(VFRange &Range) {
 
   // Build up a set of partial reduction bin ops for efficient use checking.
   SmallSet<User *, 4> PartialReductionBinOps;
-  for (const auto &[PartialRdx, _] : PartialReductionChains) {
+  for (const auto &[PartialRdx, _] : PartialReductionChains)
     PartialReductionBinOps.insert(PartialRdx.BinOp);
-  }
 
   auto ExtendIsOnlyUsedByPartialReductions =
       [&PartialReductionBinOps](Instruction *Extend) {
