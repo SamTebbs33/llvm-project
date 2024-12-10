@@ -339,7 +339,6 @@ void VPPartialReductionRecipe::execute(VPTransformState &State) {
       {PhiVal, BinOpVal}, nullptr, Twine("partial.reduce"));
 
   State.set(this, V);
-  State.addMetadata(V, dyn_cast_or_null<Instruction>(getUnderlyingValue()));
 }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
