@@ -4240,27 +4240,12 @@ ElementCount LoopVectorizationCostModel::getMaximizedVFForTarget(
         ComputeScalableMaxVF);
     MaxVectorElementCountMaxBW = MinVF(MaxVectorElementCountMaxBW, MaxSafeVF);
 
-    // Collect all viable vectorization factors larger than the default MaxVF
-    // (i.e. MaxVectorElementCount).
-    SmallVector<ElementCount, 8> VFs;
+    // Set the max VF to the largest viable vectorization factor less than or
+    // equal to the max vector element count.
     for (ElementCount VS = MaxVectorElementCount * 2;
          ElementCount::isKnownLE(VS, MaxVectorElementCountMaxBW); VS *= 2)
-      VFs.push_back(VS);
+      MaxVF = VS;
 
-    // For each VF calculate its register usage.
-    auto RUs = calculateRegisterUsage(VFs);
-
-    // Select the largest VF which doesn't require more registers than existing
-    // ones.
-    for (int I = RUs.size() - 1; I >= 0; --I) {
-      const auto &MLU = RUs[I].MaxLocalUsers;
-      if (all_of(MLU, [&](decltype(MLU.front()) &LU) {
-            return LU.second <= TTI.getNumberOfRegisters(LU.first);
-          })) {
-        MaxVF = VFs[I];
-        break;
-      }
-    }
     if (ElementCount MinVF =
             TTI.getMinimumVF(SmallestType, ComputeScalableMaxVF)) {
       if (ElementCount::isKnownLT(MaxVF, MinVF)) {
@@ -5043,10 +5028,23 @@ calculateRegisterUsage(VPlan &Plan, ArrayRef<ElementCount> VFs,
             // even in the scalar case.
             RegUsage[ClassID] += 1;
           } else {
+            // The output from scaled phis and scaled reductions actually have
+            // fewer lanes than the VF.
+            auto VF = VFs[J];
+            if (auto *ReductionR = dyn_cast<VPReductionPHIRecipe>(R))
+              VF = VF.divideCoefficientBy(ReductionR->getVFScaleFactor());
+            else if (auto *PartialReductionR =
+                         dyn_cast<VPPartialReductionRecipe>(R))
+              VF = VF.divideCoefficientBy(PartialReductionR->getScaleFactor());
+            if (VF != VFs[J])
+              LLVM_DEBUG(dbgs() << "LV(REG): Scaled down VF from " << VFs[J]
+                                << " to " << VF << " for ";
+                         R->dump(););
+
             for (VPValue *DefV : R->definedValues()) {
               Type *ScalarTy = TypeInfo.inferScalarType(DefV);
               unsigned ClassID = TTI.getRegisterClassForType(true, ScalarTy);
-              RegUsage[ClassID] += GetRegUsage(ScalarTy, VFs[J]);
+              RegUsage[ClassID] += GetRegUsage(ScalarTy, VF);
             }
           }
         }
@@ -7769,7 +7767,10 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
   }
 
   for (auto &P : VPlans) {
-    for (ElementCount VF : P->vectorFactors()) {
+    SmallVector<ElementCount, 1> VFs(P->vectorFactors());
+    auto RUs = ::calculateRegisterUsage(*P, VFs, TTI);
+    for (unsigned I = 0; I < VFs.size(); I++) {
+      auto VF = VFs[I];
       if (VF.isScalar())
         continue;
       if (!ForceVectorization && !willGenerateVectors(*P, VF, TTI)) {
@@ -7782,12 +7783,23 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
 
       InstructionCost Cost = cost(*P, VF);
       VectorizationFactor CurrentFactor(VF, Cost, ScalarCost);
-      if (isMoreProfitable(CurrentFactor, BestFactor))
-        BestFactor = CurrentFactor;
-
       // If profitable add it to ProfitableVF list.
       if (isMoreProfitable(CurrentFactor, ScalarFactor))
         ProfitableVFs.push_back(CurrentFactor);
+
+      // Make sure that the VF doesn't use more than the number of available
+      // registers
+      const auto &MLU = RUs[I].MaxLocalUsers;
+      if (!all_of(MLU, [&](decltype(MLU.front()) &LU) {
+            return LU.second <= TTI.getNumberOfRegisters(LU.first);
+          })) {
+        LLVM_DEBUG(dbgs() << "LV(REG): Ignoring VF " << VF
+                          << " as it uses too many registers\n");
+        continue;
+      }
+
+      if (isMoreProfitable(CurrentFactor, BestFactor))
+        BestFactor = CurrentFactor;
     }
   }
 
@@ -7798,6 +7810,30 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
   // stabilized.
   VectorizationFactor LegacyVF = selectVectorizationFactor();
   VPlan &BestPlan = getPlanFor(BestFactor.Width);
+
+  // VPlan calculates register pressure from the plan, so it can come to
+  // different conclusions than the legacy cost model.
+  bool RegUsageDeterminedVF = false;
+  if (BestFactor.Width != LegacyVF.Width) {
+    SmallVector<ElementCount, 1> LegacyVFs = {LegacyVF.Width};
+    SmallVector<ElementCount, 1> VFs = {BestFactor.Width};
+
+    auto LegacyRUs =
+        calculateRegisterUsage(getPlanFor(LegacyVF.Width), LegacyVFs, TTI);
+    auto RUs = calculateRegisterUsage(BestPlan, VFs, TTI);
+
+    auto GetMaxUsage = [](
+                          SmallMapVector<unsigned, unsigned, 4> MaxLocalUsers) {
+      unsigned Max = 0;
+      for (auto Pair : MaxLocalUsers)
+        if (Pair.second > Max)
+          Max = Pair.second;
+      return Max;
+    };
+    unsigned MaxLegacyRegUsage = GetMaxUsage(LegacyRUs[0].MaxLocalUsers);
+    unsigned MaxRegUsage = GetMaxUsage(RUs[0].MaxLocalUsers);
+    RegUsageDeterminedVF = MaxRegUsage <= MaxLegacyRegUsage;
+  }
 
   // Pre-compute the cost and use it to check if BestPlan contains any
   // simplifications not accounted for in the legacy cost model. If that's the
@@ -7814,6 +7850,7 @@ VectorizationFactor LoopVectorizationPlanner::computeBestVF() {
       BestPlan.getVectorLoopRegion()->getSingleSuccessor() !=
           BestPlan.getMiddleBlock();
   assert((BestFactor.Width == LegacyVF.Width || PlanForEarlyExitLoop ||
+          RegUsageDeterminedVF ||
           planContainsAdditionalSimplifications(getPlanFor(BestFactor.Width),
                                                 CostCtx, OrigLoop) ||
           planContainsAdditionalSimplifications(getPlanFor(LegacyVF.Width),
@@ -9149,8 +9186,8 @@ VPRecipeBase *VPRecipeBuilder::tryToCreateWidenRecipe(
   if (isa<LoadInst>(Instr) || isa<StoreInst>(Instr))
     return tryToWidenMemory(Instr, Operands, Range);
 
-  if (getScalingForReduction(Instr))
-    return tryToCreatePartialReduction(Instr, Operands);
+  if (auto ScaleFactor = getScalingForReduction(Instr))
+    return tryToCreatePartialReduction(Instr, Operands, ScaleFactor.value());
 
   if (!shouldWiden(Instr, Range))
     return nullptr;
@@ -9174,7 +9211,8 @@ VPRecipeBase *VPRecipeBuilder::tryToCreateWidenRecipe(
 
 VPRecipeBase *
 VPRecipeBuilder::tryToCreatePartialReduction(Instruction *Reduction,
-                                             ArrayRef<VPValue *> Operands) {
+                                             ArrayRef<VPValue *> Operands,
+                                             unsigned ScaleFactor) {
   assert(Operands.size() == 2 &&
          "Unexpected number of operands for partial reduction");
 
@@ -9207,7 +9245,7 @@ VPRecipeBuilder::tryToCreatePartialReduction(Instruction *Reduction,
     BinOp = Builder.createSelect(Mask, BinOp, Zero, Reduction->getDebugLoc());
   }
   return new VPPartialReductionRecipe(ReductionOpcode, BinOp, Accumulator,
-                                      Reduction);
+                                      ScaleFactor, Reduction);
 }
 
 void LoopVectorizationPlanner::buildVPlansWithVPRecipes(ElementCount MinVF,
