@@ -2470,7 +2470,8 @@ public:
     return R->getVPDefID() == VPRecipeBase::VPReductionSC ||
            R->getVPDefID() == VPRecipeBase::VPReductionEVLSC ||
            R->getVPDefID() == VPRecipeBase::VPExtendedReductionSC ||
-           R->getVPDefID() == VPRecipeBase::VPMulAccumulateReductionSC;
+           R->getVPDefID() == VPRecipeBase::VPMulAccumulateReductionSC ||
+           R->getVPDefID() == VPRecipeBase::VPPartialReductionSC;
   }
 
   static inline bool classof(const VPUser *U) {
@@ -2558,6 +2559,9 @@ public:
 
   /// Get the factor that the VF of this recipe's output should be scaled by.
   unsigned getVFScaleFactor() const { return VFScaleFactor; }
+
+  /// Get the binary op this reduction is applied to.
+  VPValue *getBinOp() const { return getOperand(1); }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   /// Print the recipe.
@@ -2694,6 +2698,10 @@ class VPMulAccumulateReductionRecipe : public VPReductionRecipe {
   /// The scalar type after extending.
   Type *ResultTy = nullptr;
 
+  /// The scaling factor, relative to the VF, that this recipe's output is
+  /// divided by
+  unsigned VFScaleFactor = 0;
+
   /// For cloning VPMulAccumulateReductionRecipe.
   VPMulAccumulateReductionRecipe(VPMulAccumulateReductionRecipe *MulAcc)
       : VPReductionRecipe(
@@ -2703,7 +2711,8 @@ class VPMulAccumulateReductionRecipe : public VPReductionRecipe {
             WrapFlagsTy(MulAcc->hasNoUnsignedWrap(), MulAcc->hasNoSignedWrap()),
             MulAcc->getDebugLoc()),
         ExtOp(MulAcc->getExtOpcode()), IsNonNeg(MulAcc->isNonNeg()),
-        ResultTy(MulAcc->getResultType()) {
+        ResultTy(MulAcc->getResultType()),
+        VFScaleFactor(MulAcc->getVFScaleFactor()) {
     transferFlags(*MulAcc);
     setUnderlyingValue(MulAcc->getUnderlyingValue());
   }
@@ -2711,14 +2720,16 @@ class VPMulAccumulateReductionRecipe : public VPReductionRecipe {
 public:
   VPMulAccumulateReductionRecipe(VPReductionRecipe *R, VPWidenRecipe *Mul,
                                  VPWidenCastRecipe *Ext0,
-                                 VPWidenCastRecipe *Ext1, Type *ResultTy)
+                                 VPWidenCastRecipe *Ext1, Type *ResultTy,
+                                 unsigned ScaleFactor = 1)
       : VPReductionRecipe(
             VPDef::VPMulAccumulateReductionSC, R->getRecurrenceKind(),
             {R->getChainOp(), Ext0->getOperand(0), Ext1->getOperand(0)},
             R->getCondOp(), R->isOrdered(),
             WrapFlagsTy(Mul->hasNoUnsignedWrap(), Mul->hasNoSignedWrap()),
             R->getDebugLoc()),
-        ExtOp(Ext0->getOpcode()), ResultTy(ResultTy) {
+        ExtOp(Ext0->getOpcode()), ResultTy(ResultTy),
+        VFScaleFactor(ScaleFactor) {
     assert(RecurrenceDescriptor::getOpcode(getRecurrenceKind()) ==
                Instruction::Add &&
            "The reduction instruction in MulAccumulateteReductionRecipe must "
@@ -2791,6 +2802,10 @@ public:
 
   /// Return true if the operand extends have the non-negative flag.
   bool isNonNeg() const { return IsNonNeg; }
+
+  /// Return the scaling factor that the VF is divided by to form the recipe's
+  /// output
+  unsigned getVFScaleFactor() const { return VFScaleFactor; }
 };
 
 /// VPReplicateRecipe replicates a given instruction producing multiple scalar
