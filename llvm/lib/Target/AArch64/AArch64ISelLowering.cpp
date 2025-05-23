@@ -1886,9 +1886,8 @@ AArch64TargetLowering::AArch64TargetLowering(const TargetMachine &TM,
     // Other pairs will default to 'Expand'.
     static const unsigned MLAOps[] = {ISD::PARTIAL_REDUCE_SMLA,
                                       ISD::PARTIAL_REDUCE_UMLA};
-    setPartialReduceMLAAction(MLAOps, MVT::nxv2i64, MVT::nxv8i16, Legal);
-    setPartialReduceMLAAction(MLAOps, MVT::nxv4i32, MVT::nxv16i8, Legal);
-
+    setPartialReduceMLAAction(MLAOps, MVT::nxv2i64, MVT::nxv8i16, Custom);
+    setPartialReduceMLAAction(MLAOps, MVT::nxv4i32, MVT::nxv16i8, Custom);
     setPartialReduceMLAAction(MLAOps, MVT::nxv2i64, MVT::nxv16i8, Custom);
 
     // Wide add types
@@ -7523,6 +7522,7 @@ SDValue AArch64TargetLowering::LowerOperation(SDValue Op,
     return LowerVECTOR_HISTOGRAM(Op, DAG);
   case ISD::PARTIAL_REDUCE_SMLA:
   case ISD::PARTIAL_REDUCE_UMLA:
+  case ISD::PARTIAL_REDUCE_SUMLA:
     return LowerPARTIAL_REDUCE_MLA(Op, DAG);
   }
 }
@@ -29305,6 +29305,10 @@ SDValue AArch64TargetLowering::LowerVECTOR_HISTOGRAM(SDValue Op,
 SDValue
 AArch64TargetLowering::LowerPARTIAL_REDUCE_MLA(SDValue Op,
                                                SelectionDAG &DAG) const {
+  // No support for sumla forms, let generic legalization handle them
+  if (Op->getOpcode() == ISD::PARTIAL_REDUCE_SUMLA)
+    return SDValue();
+
   SDLoc DL(Op);
 
   SDValue Acc = Op.getOperand(0);
@@ -29313,6 +29317,13 @@ AArch64TargetLowering::LowerPARTIAL_REDUCE_MLA(SDValue Op,
   EVT ResultVT = Op.getValueType();
   EVT OrigResultVT = ResultVT;
   EVT OpVT = LHS.getValueType();
+
+  // These two are legal...
+  if ((ResultVT == MVT::nxv2i64 && OpVT == MVT::nxv8i16) ||
+      (ResultVT == MVT::nxv4i32 && OpVT == MVT::nxv16i8))
+    return Op;
+
+  assert(ResultVT == MVT::nxv2i64 && OpVT == MVT::nxv16i8);
 
   bool ConvertToScalable =
       ResultVT.isFixedLengthVector() &&
