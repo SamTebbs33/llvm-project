@@ -4686,6 +4686,8 @@ void DAGTypeLegalizer::WidenVectorResult(SDNode *N, unsigned ResNo) {
 #endif
     report_fatal_error("Do not know how to widen the result of this operator!");
 
+  case ISD::LOOP_DEPENDENCE_RAW_MASK:
+  case ISD::LOOP_DEPENDENCE_WAR_MASK: Res = WidenVecRes_LOOP_DEPENDENCE_MASK(N); break;
   case ISD::MERGE_VALUES:      Res = WidenVecRes_MERGE_VALUES(N, ResNo); break;
   case ISD::ADDRSPACECAST:
     Res = WidenVecRes_ADDRSPACECAST(N);
@@ -5883,6 +5885,11 @@ SDValue DAGTypeLegalizer::WidenVecRes_BITCAST(SDNode *N) {
   }
 
   return CreateStackStoreLoad(InOp, WidenVT);
+}
+
+SDValue DAGTypeLegalizer::WidenVecRes_LOOP_DEPENDENCE_MASK(SDNode *N) {
+    dbgs() << "### WidenVecRes_LOOP_DEPENDENCE_MASK\n";
+    return DAG.getNode(N->getOpcode(), SDLoc(N), TLI.getTypeToTransformTo(*DAG.getContext(), N->getValueType(0)), N->getOperand(0), N->getOperand(1), N->getOperand(2));
 }
 
 SDValue DAGTypeLegalizer::WidenVecRes_BUILD_VECTOR(SDNode *N) {
