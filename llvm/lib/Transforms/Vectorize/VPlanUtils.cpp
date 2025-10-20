@@ -30,7 +30,8 @@ bool vputils::onlyScalarValuesUsed(const VPValue *Def) {
                 [Def](const VPUser *U) { return U->usesScalars(Def); });
 }
 
-VPValue *vputils::getOrCreateVPValueForSCEVExpr(VPlan &Plan, const SCEV *Expr) {
+VPValue *vputils::getOrCreateVPValueForSCEVExpr(VPlan &Plan, const SCEV *Expr,
+                                                VPRecipeBase *InsertBefore) {
   if (auto *Expanded = Plan.getSCEVExpansion(Expr))
     return Expanded;
   VPValue *Expanded = nullptr;
@@ -45,8 +46,16 @@ VPValue *vputils::getOrCreateVPValueForSCEVExpr(VPlan &Plan, const SCEV *Expr) {
     if (U && !isa<Instruction>(U->getValue())) {
       Expanded = Plan.getOrAddLiveIn(U->getValue());
     } else {
+      assert(!InsertBefore ||
+             InsertBefore->getParent() == Plan.getEntry() &&
+                 "SCEVs must be expanded in the loop entry block");
       Expanded = new VPExpandSCEVRecipe(Expr);
-      Plan.getEntry()->appendRecipe(Expanded->getDefiningRecipe());
+      VPRecipeBase *ExpandedR = Expanded->getDefiningRecipe();
+
+      if (InsertBefore)
+        ExpandedR->insertBefore(InsertBefore);
+      else
+        Plan.getEntry()->appendRecipe(ExpandedR);
     }
   }
   Plan.addSCEVExpansion(Expr, Expanded);

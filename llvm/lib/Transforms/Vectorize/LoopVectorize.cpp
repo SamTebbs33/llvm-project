@@ -1833,10 +1833,7 @@ public:
                                  "vector.memcheck");
 
       auto DiffChecks = RtPtrChecking.getDiffChecks();
-      if (UseSafeEltsMask) {
-        MemRuntimeCheckCond = addSafeEltsRuntimeChecks(
-            MemCheckBlock->getTerminator(), *DiffChecks, MemCheckExp, VF);
-      } else if (DiffChecks) {
+      if (DiffChecks) {
         Value *RuntimeVF = nullptr;
         MemRuntimeCheckCond = addDiffRuntimeChecks(
             MemCheckBlock->getTerminator(), *DiffChecks, MemCheckExp,
@@ -8916,11 +8913,74 @@ void LoopVectorizationPlanner::attachRuntimeChecks(
     assert((!CM.OptForSize ||
             CM.Hints->getForce() == LoopVectorizeHints::FK_Enabled) &&
            "Cannot SCEV check stride or overflow when optimizing for size");
-    VPlanTransforms::attachCheckBlock(Plan, SCEVCheckCond, SCEVCheckBlock,
+    VPlanTransforms::attachCheckBlock(Plan, Plan.getOrAddLiveIn(SCEVCheckCond),
+                                      Plan.createVPIRBasicBlock(SCEVCheckBlock),
                                       HasBranchWeights);
   }
   const auto &[MemCheckCond, MemCheckBlock] = RTChecks.getMemRuntimeChecks();
   if (MemCheckBlock && MemCheckBlock->hasNPredecessors(0)) {
+    VPValue *MemCheckCondVPV = Plan.getOrAddLiveIn(MemCheckCond);
+    VPBasicBlock *MemCheckBlockVP = Plan.createVPIRBasicBlock(MemCheckBlock);
+    std::optional<ArrayRef<PointerDiffInfo>> ChecksOpt =
+        CM.Legal->getRuntimePointerChecking()->getDiffChecks();
+
+    // Create a mask enabling safe elements for each iteration.
+    if (CM.getRTCheckStyle(TTI) == RTCheckStyle::UseSafeEltsMask &&
+        ChecksOpt.has_value() && ChecksOpt->size() > 0) {
+      ArrayRef<PointerDiffInfo> Checks = *ChecksOpt;
+      VPRegionBlock *LoopRegion = Plan.getVectorLoopRegion();
+      VPBasicBlock *LoopBody = LoopRegion->getEntryBasicBlock();
+      VPBuilder Builder(MemCheckBlockVP);
+
+      /// Create a mask for each possibly-aliasing pointer pair, ANDing them if
+      /// there's more than one pair.
+      VPValue *AliasMask = nullptr;
+      for (PointerDiffInfo Check : Checks) {
+        VPValue *Sink = vputils::getOrCreateVPValueForSCEVExpr(
+            Plan, Check.SinkStart, Plan.getEntry()->getTerminator());
+        VPValue *Src = vputils::getOrCreateVPValueForSCEVExpr(
+            Plan, Check.SrcStart, Plan.getEntry()->getTerminator());
+        VPAliasLaneMaskRecipe *M = new VPAliasLaneMaskRecipe(
+            Src, Sink, Check.AccessSize, Check.WriteAfterRead);
+        MemCheckBlockVP->appendRecipe(M);
+        if (AliasMask)
+          AliasMask = Builder.createAnd(AliasMask, M);
+        else
+          AliasMask = M;
+      }
+      assert(AliasMask && "Expected an alias mask to have been created");
+
+      // Replace uses of the loop body's active lane mask phi with an AND of the
+      // phi and the alias mask.
+      for (VPRecipeBase &R : *LoopBody) {
+        auto *MaskPhi = dyn_cast<VPActiveLaneMaskPHIRecipe>(&R);
+        if (!MaskPhi)
+          continue;
+        VPInstruction *And = new VPInstruction(Instruction::BinaryOps::And,
+                                               {MaskPhi, AliasMask});
+        MaskPhi->replaceUsesWithIf(And, [And](VPUser &U, unsigned) {
+          auto *UR = dyn_cast<VPRecipeBase>(&U);
+          // If this is the first user, instert the AND.
+          if (UR && !And->getParent())
+            And->insertBefore(UR);
+          bool Replace = UR != And;
+          return Replace;
+        });
+      }
+
+      // An empty mask would cause an infinite loop since the induction variable
+      // is updated with the number of set elements in the mask. Make sure we
+      // don't execute the vector loop when the mask is empty.
+      VPInstruction *PopCount =
+          new VPInstruction(VPInstruction::PopCount, {AliasMask});
+      PopCount->insertAfter(AliasMask->getDefiningRecipe());
+      VPValue *Cmp =
+          Builder.createICmp(CmpInst::Predicate::ICMP_UGT, PopCount,
+                             Plan.getOrAddLiveIn(ConstantInt::get(
+                                 IntegerType::get(Plan.getContext(), 64), 0)));
+      MemCheckCondVPV = Builder.createAnd(Cmp, MemCheckCondVPV);
+    }
+
     // VPlan-native path does not do any analysis for runtime checks
     // currently.
     assert((!EnableVPlanNativePath || OrigLoop->isInnermost()) &&
@@ -8941,7 +9001,7 @@ void LoopVectorizationPlanner::attachRuntimeChecks(
                   "(e.g., adding 'restrict').";
       });
     }
-    VPlanTransforms::attachCheckBlock(Plan, MemCheckCond, MemCheckBlock,
+    VPlanTransforms::attachCheckBlock(Plan, MemCheckCondVPV, MemCheckBlockVP,
                                       HasBranchWeights);
   }
 }

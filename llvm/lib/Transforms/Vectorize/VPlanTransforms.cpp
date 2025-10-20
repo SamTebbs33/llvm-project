@@ -2421,12 +2421,6 @@ static VPValue *addVPLaneMaskPhiAndUpdateExitBranch(
           Builder.createScalarCast(Instruction::Trunc, IncrementBy, IVType,
                                    CanonicalIVIncrement->getDebugLoc());
     CanonicalIVIncrement->setOperand(1, IncrementBy);
-
-    // And the alias mask so the iteration only processes non-aliasing lanes
-    Builder.setInsertPoint(CanonicalIVPHI->getParent(),
-                           CanonicalIVPHI->getParent()->getFirstNonPhi());
-    LaneMask = Builder.createNaryOp(Instruction::BinaryOps::And,
-                                    {LaneMaskPhi, AliasMask}, DL);
   }
 
   // Create the active lane mask for the next iteration of the loop before the
